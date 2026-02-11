@@ -1,5 +1,6 @@
 # loom-lang
 
+```
 class Button: button {
 
 	@size small | medium | large = medium
@@ -35,3 +36,4 @@ class Button: button {
 		icon.opacity: .4;
 	}
 }
+```
