@@ -1,7 +1,7 @@
 # loom-lang
 
 ```
-class Button: button {
+class Button {
 
 	@size small | medium | large = medium
 	@tone neutral | danger | success = neutral
@@ -34,6 +34,20 @@ class Button: button {
 	state focus {
 		border: 1px solid red;
 		icon.opacity: .4;
+	}
+}
+```
+
+```
+class Link extends Button {
+
+	@behavior button | link = button
+
+	if @behavior link {
+		padding: 0;
+		text-decoration: underline;
+
+		state.hover.text-decoration: none;
 	}
 }
 ```
