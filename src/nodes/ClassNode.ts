@@ -1,7 +1,7 @@
 import Node from '../parsing/Node';
 import Parser from '../parsing/Parser';
 import { TokenType } from '../types/tokenization';
-import VariantDefinition from './VariantDefinition';
+import VariantDefinitionNode from './VariantDefinitionNode';
 
 export default class ClassNode extends Node {
 
@@ -21,7 +21,7 @@ export default class ClassNode extends Node {
 
             // Parse class body
             while(
-                VariantDefinition.parse(parser)
+                VariantDefinitionNode.parse(parser)
             );
 
             if (parser.expectWithValue(TokenType.SYMBOL, '}')) {

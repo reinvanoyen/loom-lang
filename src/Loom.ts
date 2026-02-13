@@ -1,5 +1,4 @@
 import Lexer from './tokenization/Lexer';
-import Parser from './parsing/Parser';
 
 export default class Loom {
     /**
@@ -8,17 +7,18 @@ export default class Loom {
      */
     public static make(code: string): string {
         const tokens = (new Lexer()).tokenize(code);
+        /*
         const ast = (new Parser().parse(tokens));
 
-        console.log(ast.getChildren());
+        console.log(ast.getChildren()[0].getChildren());*/
 
         // Simple compiling
         const output = [];
 
         tokens.forEach(token => {
-            output.push(token.value);
+            output.push(`${token.type}(${token.value})`);
         });
 
-        return output.join(' ');
+        return output.join('\n');
     }
 }
