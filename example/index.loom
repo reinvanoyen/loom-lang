@@ -1,0 +1,4 @@
+class Button {
+	@size small | medium | large = medium
+	@tone neutral | danger | success = neutral
+}

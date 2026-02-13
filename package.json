@@ -1,0 +1,46 @@
+{
+  "name": "loom-lang",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "example": "npm run build && node example/index.js",
+    "build": "tsup",
+    "test": "jest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reinvanoyen/loom-lang.git"
+  },
+  "keywords": [
+    "CSS",
+    "components",
+    "pre-processor",
+    "language",
+    "loom"
+  ],
+  "author": "Rein Van Oyen",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/reinvanoyen/loom-lang/issues"
+  },
+  "homepage": "https://github.com/reinvanoyen/loom-lang#readme",
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.8.0",
+    "@types/node": "^25.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-jsdoc": "^62.5.4",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.3.0",
+    "jiti": "^2.6.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.55.0"
+  }
+}
