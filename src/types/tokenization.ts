@@ -7,6 +7,7 @@ export enum LexMode {
     WHITESPACE,
     NEWLINE,
     STRING,
+    RAW_BLOCK,
     VAR,
     COLOR,
     COMMENT
@@ -19,7 +20,7 @@ export enum TokenType {
     SYMBOL = 'Symbol',
     NEWLINE = 'Newline',
     STRING = 'String',
-    VAR = 'Var',
+    RAW_BLOCK = 'RawBlock'
 }
 
 export type Token = {

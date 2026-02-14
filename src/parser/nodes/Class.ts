@@ -4,6 +4,7 @@ import { TokenType } from '../../types/tokenization';
 import VariantDeclaration from './VariantDeclaration';
 import SlotDeclaration from './SlotDeclaration';
 import Compiler from '../../compiler/Compiler';
+import StyleBlock from './StyleBlock';
 
 export default class Class extends Node {
 
@@ -29,7 +30,8 @@ export default class Class extends Node {
             // Parse class body
             while(
                 VariantDeclaration.parse(parser) ||
-                SlotDeclaration.parse(parser)
+                SlotDeclaration.parse(parser) ||
+                StyleBlock.parse(parser)
             );
 
             if (parser.expectWithValue(TokenType.SYMBOL, '}')) {

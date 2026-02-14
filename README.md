@@ -14,10 +14,19 @@ class Button {
 
 	slot icon;
 	slot link;
+
+	{%
+		color: blue;
+		background-color: red;
+	%}
 }
 
 class Link extends Button {
 	@underline: 'yes' | 'no' = 'yes';
+}
+
+class Label {
+	@intent: Intent;
 }
 ```
 

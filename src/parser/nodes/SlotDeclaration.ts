@@ -24,6 +24,7 @@ export default class SlotDeclaration extends Node {
     }
 
     compile(compiler: Compiler) {
-        compiler.writeLine(`.${this.getValue()} {}`);
+        // todo - register the slot on runtime
+        //compiler.writeLine(`.${this.getValue()} {}`);
     }
 }

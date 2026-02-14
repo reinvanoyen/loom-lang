@@ -26,6 +26,9 @@ module.exports = __toCommonJS(index_exports);
 // src/tokenization/grammar.ts
 var grammar_default = {
   REGEX_IDENT: /\p{L}/u,
+  REGEX_RAW_BLOCK_START: /{/,
+  REGEX_RAW_BLOCK_END: /}/,
+  REGEX_RAW_BLOCK_INSIDE: /%/,
   REGEX_NUMBER: /\d/,
   REGEX_SYMBOL: /[.!?,;:()\-+=%*\\/—–…${}><&#@°|]/,
   REGEX_WHITESPACE: /\s/,
@@ -114,6 +117,9 @@ var Lexer = class {
         case 2 /* IDENT */:
           this.lexIdent();
           break;
+        case 8 /* RAW_BLOCK */:
+          this.lexRawBlock();
+          break;
         case 3 /* NUMBER */:
           this.lexNumber();
           break;
@@ -146,6 +152,9 @@ var Lexer = class {
    */
   determineMode() {
     this.value = "";
+    if (grammar_default.REGEX_RAW_BLOCK_START.exec(this.character) && grammar_default.REGEX_RAW_BLOCK_INSIDE.exec(this.nextCharacter)) {
+      return 8 /* RAW_BLOCK */;
+    }
     if (grammar_default.REGEX_IDENT.exec(this.character)) {
       return 2 /* IDENT */;
     }
@@ -195,6 +204,34 @@ var Lexer = class {
       this.mode = 0 /* ALL */;
       this.delimiter = "";
     }
+  }
+  /**
+   * Tokenize raw block
+   * @private
+   */
+  lexRawBlock() {
+    if (this.value.length === 0 && grammar_default.REGEX_RAW_BLOCK_START.exec(this.character) && // '{'
+    grammar_default.REGEX_RAW_BLOCK_INSIDE.exec(this.nextCharacter)) {
+      this.cursor += 2;
+      this.column += 2;
+      return;
+    }
+    if (grammar_default.REGEX_RAW_BLOCK_INSIDE.exec(this.character) && grammar_default.REGEX_RAW_BLOCK_END.exec(this.nextCharacter)) {
+      this.tokens.push({
+        type: "RawBlock" /* RAW_BLOCK */,
+        value: this.value,
+        line: this.line,
+        position: this.column,
+        end: this.atEnd()
+      });
+      this.cursor += 2;
+      this.column += 2;
+      this.mode = 0 /* ALL */;
+      return;
+    }
+    this.value += this.character;
+    this.cursor++;
+    this.column++;
   }
   /**
    * Tokenize identifier
@@ -529,7 +566,30 @@ var SlotDeclaration = class _SlotDeclaration extends Node {
     return false;
   }
   compile(compiler) {
-    compiler.writeLine(`.${this.getValue()} {}`);
+  }
+};
+
+// src/parser/nodes/StyleBlock.ts
+var StyleBlock = class _StyleBlock extends Node {
+  /**
+   * @param parser
+   */
+  static parse(parser) {
+    if (parser.accept("RawBlock" /* RAW_BLOCK */)) {
+      parser.insert(new _StyleBlock());
+      parser.in();
+      parser.setAttribute("contents", parser.getCurrentValue());
+      parser.advance();
+      parser.out();
+      return true;
+    }
+    return false;
+  }
+  compile(compiler) {
+    const contents = this.getAttribute("contents");
+    if (typeof contents === "string") {
+      compiler.writeLine("	" + contents.trim());
+    }
   }
 };
 
@@ -549,7 +609,7 @@ var Class = class _Class extends Node {
       }
       parser.expectWithValue("Symbol" /* SYMBOL */, "{");
       parser.advance();
-      while (VariantDeclaration.parse(parser) || SlotDeclaration.parse(parser)) ;
+      while (VariantDeclaration.parse(parser) || SlotDeclaration.parse(parser) || StyleBlock.parse(parser)) ;
       if (parser.expectWithValue("Symbol" /* SYMBOL */, "}")) {
         parser.out();
         parser.advance();
@@ -892,6 +952,49 @@ var Parser = class {
   }
 };
 
+// src/runtime/Runtime.ts
+var Runtime = class {
+  constructor() {
+    /**
+     * @private
+     */
+    this.namespaces = [];
+    /**
+     * @private
+     */
+    this.currentNamespace = null;
+    /**
+     * @private
+     */
+    this.classes = {};
+  }
+  /**
+   * @param name
+   */
+  setNamespace(name) {
+    if (!this.namespaces.includes(name)) {
+      this.namespaces.push(name);
+    }
+    this.currentNamespace = name;
+  }
+  /**
+   *
+   */
+  getNamespace() {
+    return this.currentNamespace;
+  }
+  /**
+   *
+   * @param name
+   */
+  registerClass(name) {
+    if (!this.classes[this.currentNamespace]) {
+      this.classes[this.currentNamespace] = [];
+    }
+    this.classes[this.currentNamespace].push(name);
+  }
+};
+
 // src/compiler/OutputBuffer.ts
 var OutputBuffer = class {
   constructor() {
@@ -980,49 +1083,6 @@ var Compiler = class {
   compile(ast) {
     ast.compile(this);
     return this.buffer.render();
-  }
-};
-
-// src/runtime/Runtime.ts
-var Runtime = class {
-  constructor() {
-    /**
-     * @private
-     */
-    this.namespaces = [];
-    /**
-     * @private
-     */
-    this.currentNamespace = null;
-    /**
-     * @private
-     */
-    this.classes = {};
-  }
-  /**
-   * @param name
-   */
-  setNamespace(name) {
-    if (!this.namespaces.includes(name)) {
-      this.namespaces.push(name);
-    }
-    this.currentNamespace = name;
-  }
-  /**
-   *
-   */
-  getNamespace() {
-    return this.currentNamespace;
-  }
-  /**
-   *
-   * @param name
-   */
-  registerClass(name) {
-    if (!this.classes[this.currentNamespace]) {
-      this.classes[this.currentNamespace] = [];
-    }
-    this.classes[this.currentNamespace].push(name);
   }
 };
 

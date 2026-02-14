@@ -10,12 +10,21 @@ class Button {
 
 	slot icon;
 	slot link;
+
+	{%
+		position: relative;
+		width: 100px;
+		height: 90px;
+		animation: heartbeat 1s infinite;
+	%}
 }
 
 class Link extends Button {
-	@underline: 'yes' | 'no' = 'yes';
+	{%
+		text-decoration: underline;
+	%}
 }
 
-class Label {
-	@intent: Intent;
-}
+class Label {{%
+	color: red;
+%}}

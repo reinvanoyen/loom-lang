@@ -1,9 +1,13 @@
 
 .ui-Button {
-.icon {}
-.link {}
+	position: relative;
+		width: 100px;
+		height: 90px;
+		animation: heartbeat 1s infinite;
 }
 .ui-Link {
+	text-decoration: underline;
 }
 .ui-Label {
+	color: red;
 }

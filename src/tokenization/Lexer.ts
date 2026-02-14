@@ -101,6 +101,9 @@ export default class Lexer {
                 case LexMode.IDENT:
                     this.lexIdent();
                     break;
+                case LexMode.RAW_BLOCK:
+                    this.lexRawBlock();
+                    break;
                 case LexMode.NUMBER:
                     this.lexNumber();
                     break;
@@ -138,6 +141,13 @@ export default class Lexer {
 
         // Reset the current token value
         this.value = '';
+
+        if (
+            grammar.REGEX_RAW_BLOCK_START.exec(this.character) &&
+            grammar.REGEX_RAW_BLOCK_INSIDE.exec(this.nextCharacter)
+        ) {
+            return LexMode.RAW_BLOCK;
+        }
 
         if (grammar.REGEX_IDENT.exec(this.character)) {
             return LexMode.IDENT;
@@ -205,7 +215,46 @@ export default class Lexer {
             this.delimiter = '';
         }
     }
-    
+
+    /**
+     * Tokenize raw block
+     * @private
+     */
+    private lexRawBlock() {
+
+        // If we just entered raw block, skip the opening "{%"
+        if (
+            this.value.length === 0 &&
+            grammar.REGEX_RAW_BLOCK_START.exec(this.character) &&      // '{'
+            grammar.REGEX_RAW_BLOCK_INSIDE.exec(this.nextCharacter)    // '%'
+        ) {
+            this.cursor += 2;
+            this.column += 2;
+            return;
+        }
+
+        if (
+            grammar.REGEX_RAW_BLOCK_INSIDE.exec(this.character) &&
+            grammar.REGEX_RAW_BLOCK_END.exec(this.nextCharacter)
+        ) {
+            this.tokens.push({
+                type: TokenType.RAW_BLOCK,
+                value: this.value,
+                line: this.line,
+                position: this.column,
+                end: this.atEnd(),
+            });
+            this.cursor += 2;
+            this.column += 2;
+            this.mode = LexMode.ALL;
+            return;
+        }
+
+        this.value += this.character;
+        this.cursor++;
+        this.column++;
+    }
+
     /**
      * Tokenize identifier
      * @private
