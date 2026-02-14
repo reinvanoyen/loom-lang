@@ -1,4 +1,5 @@
-# loom-lang
+# LOOM
+## The CSS language for battle-tested design systems
 
 Confirmed:
 ```
