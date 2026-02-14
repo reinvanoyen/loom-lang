@@ -1,6 +1,7 @@
 import { Nullable } from '../types/nullable';
 import { AttributeValue } from '../types/attribute';
 import Parser from './Parser';
+import Compiler from '../compiler/Compiler';
 
 export default class Node {
 
@@ -138,7 +139,7 @@ export default class Node {
      *
      * @param _compiler
      */
-    compile() {
+    compile(compiler: Compiler) {
         // todo
     }
 

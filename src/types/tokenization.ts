@@ -20,7 +20,6 @@ export enum TokenType {
     NEWLINE = 'Newline',
     STRING = 'String',
     VAR = 'Var',
-    COLOR = 'Color'
 }
 
 export type Token = {

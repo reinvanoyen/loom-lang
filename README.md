@@ -1,5 +1,27 @@
 # loom-lang
 
+Confirmed:
+```
+namespace ui;
+
+type Size: 'small' | 'medium' | 'large';
+type Intent: 'neutral' | 'danger' | 'warning' | 'success';
+
+class Button {
+
+	@size: Size = 'medium';
+	@intent: Intent | 'flashy' = 'flashy';
+
+	slot icon;
+	slot link;
+}
+
+class Link extends Button {
+	@underline: 'yes' | 'no' = 'yes';
+}
+```
+
+Ideating:
 ```
 class Button {
 

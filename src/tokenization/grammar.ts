@@ -5,4 +5,5 @@ export default {
     REGEX_WHITESPACE: /\s/,
     REGEX_NEWLINE: /[\n\r]/,
     REGEX_STRING_DELIMITER: /["']/,
+    STRING_ESCAPE_SYMBOL: '\\',
 };

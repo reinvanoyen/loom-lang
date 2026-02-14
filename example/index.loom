@@ -1,7 +1,21 @@
+namespace ui;
+
+type Size: 'small' | 'medium' | 'large';
+type Intent: 'neutral' | 'danger' | 'warning' | 'success';
+
 class Button {
 
-	@size small | medium | large = large
-	@color neutral | danger | warning | success = neutral
+	@size: Size = 'medium';
+	@intent: Intent | 'flashy' = 'flashy';
 
-	background-color: red;
+	slot icon;
+	slot link;
+}
+
+class Link extends Button {
+	@underline: 'yes' | 'no' = 'yes';
+}
+
+class Label {
+	@intent: Intent;
 }

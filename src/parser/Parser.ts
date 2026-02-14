@@ -24,7 +24,7 @@ export default class Parser {
     private ast: AstNode = new AstNode();
 
     /**
-     * The current scope, which is the Node in which we're currently parsing
+     * The current scope, which is the Node in which we're currently parser
      * @private
      */
     private scope: Node = this.ast;
@@ -160,6 +160,14 @@ export default class Parser {
     }
 
     /**
+     * @param types
+     */
+    public acceptOneOf(types: TokenType[]): boolean {
+        const token = this.getCurrentToken();
+        return (token && types.includes(token.type));
+    }
+
+    /**
      * Skip a token of the given type at this cursor position
      * @param type
      */
@@ -206,7 +214,7 @@ export default class Parser {
         if (this.acceptWithValue(type, value)) {
             return true;
         }
-        throw new Error('Unexpected token');
+        throw new Error(`Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`);
         // todo implement UnexpectedToken error
         //throw new UnexpectedToken(type, this.getCurrentToken());
     }
@@ -222,6 +230,19 @@ export default class Parser {
             return true;
         }
         throw new Error('Unexpected token');
+        // todo implement UnexpectedToken error
+        //throw new UnexpectedToken(type, this.getCurrentToken());
+    }
+
+    /**
+     *
+     * @param types
+     */
+    public expectOneOf(types: TokenType[]): boolean {
+        if (this.acceptOneOf(types)) {
+            return true;
+        }
+        throw new Error('Unexpected token, expected one of: '+types.join(', '));
         // todo implement UnexpectedToken error
         //throw new UnexpectedToken(type, this.getCurrentToken());
     }

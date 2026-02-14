@@ -95,6 +95,9 @@ export default class Lexer {
             }
 
             switch (this.mode) {
+                case LexMode.STRING:
+                    this.lexString();
+                    break;
                 case LexMode.IDENT:
                     this.lexIdent();
                     break;
@@ -164,6 +167,45 @@ export default class Lexer {
         return LexMode.UNKNOWN;
     }
 
+    /**
+     * Tokenize string
+     * @private
+     */
+    private lexString() {
+
+        const escSequence = (this.character === grammar.STRING_ESCAPE_SYMBOL);
+
+        // String escaping
+        if (escSequence) {
+            this.cursor += 1;
+            // We directly alter the character and nextCharacter,
+            // so we can directly consume them further down in the method
+            this.character = this.source[this.cursor];
+            this.nextCharacter = this.source[this.cursor + 1] || null;
+        }
+
+        if (this.character !== this.delimiter || escSequence) {
+            // Consume the character
+            this.value += this.character;
+        }
+
+        this.cursor++;
+
+        if (this.nextCharacter === this.delimiter) {
+            this.tokens.push({
+                type: TokenType.STRING,
+                value: this.value,
+                line: this.line,
+                position: this.column,
+                end: this.atEnd(true),
+            });
+            this.cursor++;
+            this.column += this.cursor - this.modeStartCursor;
+            this.mode = LexMode.ALL;
+            this.delimiter = '';
+        }
+    }
+    
     /**
      * Tokenize identifier
      * @private
