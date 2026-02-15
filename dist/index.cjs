@@ -1389,7 +1389,25 @@ var TypeTable = class {
 // src/analyzer/DiagnosticsResult.ts
 var DiagnosticsResult = class {
   constructor() {
+    /**
+     * @private
+     */
     this.messages = [];
+  }
+  /**
+   * @param message
+   */
+  report(message) {
+    this.messages.push(message);
+  }
+  /**
+   *
+   */
+  hasErrors() {
+    const errors = this.messages.filter((message) => {
+      return message.severity === "error";
+    });
+    return errors.length > 0;
   }
 };
 
