@@ -1,82 +1,49 @@
-export type TypeSymbol = {
-    type: 'string' | 'identifier',
-    value: string;
-};
+import Symbol from './Symbol';
+import { Nullable } from '../types/nullable';
+import { Namespace } from '../types/namespace';
 
-// @todo turn this into a list of names and their references
-// --> see Symbol class
 export default class SymbolTable {
-
     /**
      * @private
      */
-    private types: Record<string, TypeSymbol[]> = {};
+    private symbols: Record<Namespace, Record<string, Symbol>> = {};
 
     /**
-     * @private
-     */
-    private namespaces: string[] = [];
-
-    /**
-     * @private
-     */
-    private currentNamespace: string | null = null;
-
-    /**
-     * @private
-     */
-    private classes: Record<string, string[]> = {};
-
-    /**
+     * @param ns
      * @param name
+     * @param symbol
      */
-    public setNamespace(name: string) {
-        if (! this.namespaces.includes(name)) {
-            this.namespaces.push(name);
+    public registerSymbol(ns: Namespace, name: string, symbol: Symbol) {
+        if (! this.symbols[ns]) {
+            this.symbols[ns] = {};
         }
-
-        this.currentNamespace = name;
+        this.symbols[ns][name] = symbol;
     }
 
     /**
-     *
+     * @param ns
+     * @param name
      */
-    public getNamespace(): string | null {
-        return this.currentNamespace;
+    public hasSymbol(ns: Namespace, name: string) {
+        if (! this.symbols[ns]) {
+            return false;
+        }
+
+        if (! this.symbols[ns][name]) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     *
+     * @param ns
      * @param name
      */
-    public registerClass(name: string) {
-        if (! this.classes[this.currentNamespace]) {
-            this.classes[this.currentNamespace] = [];
+    public getSymbol(ns: Namespace, name: string): Nullable<Symbol> {
+        if (this.hasSymbol(ns, name)) {
+            return this.symbols[ns][name];
         }
-
-        this.classes[this.currentNamespace].push(name);
-    }
-
-    /**
-     * @param name
-     * @param symbols
-     */
-    public declareType(name: string, symbols: TypeSymbol[]) {
-        if (this.types[name]) {
-            throw new Error(`Runtime error, type ${name} already exists`);
-        }
-
-        this.types[name] = symbols;
-    }
-
-    /**
-     * @param name
-     */
-    public getType(name: string): TypeSymbol[] {
-        if (! this.types[name]) {
-            throw new Error(`Runtime error, type ${name} doesn't exist`);
-        }
-
-        return this.types[name];
+        return null;
     }
 }

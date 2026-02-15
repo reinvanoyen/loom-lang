@@ -1,15 +1,24 @@
 import { Nullable } from '../types/nullable';
 import { AttributeValue } from '../types/attribute';
 import Parser from './Parser';
+import Symbol from '../context/Symbol';
 import Compiler from '../compiler/Compiler';
 import Binder from '../context/Binder';
+import TypeResolver from '../analyzer/TypeResolver';
+import TypeChecker from '../analyzer/TypeChecker';
+import TypeTable from '../analyzer/TypeTable';
 
 export default class Node {
 
     /**
      * @protected
      */
-    private id: number;
+    private id: Nullable<number> = null;
+
+    /**
+     * @private
+     */
+    private symbol: Nullable<Symbol> = null;
 
     /**
      *
@@ -53,8 +62,22 @@ export default class Node {
     /**
      *
      */
-    getId(): number {
+    getId(): Nullable<number> {
         return this.id;
+    }
+
+    /**
+     * @param symbol
+     */
+    setSymbol(symbol: Symbol) {
+        this.symbol = symbol;
+    }
+
+    /**
+     *
+     */
+    getSymbol() {
+        return this.symbol;
     }
 
     /**
@@ -164,14 +187,28 @@ export default class Node {
     }
 
     bind(binder: Binder) {
-        // todo
+        this.getChildren().forEach(child => {
+            child.bind(binder);
+        });
+    }
+
+    resolve(typeResolver: TypeResolver) {
+        this.getChildren().forEach(child => {
+            child.resolve(typeResolver);
+        });
+    }
+
+    check(typeChecker: TypeChecker, typeTable: TypeTable) {
+        this.getChildren().forEach(child => {
+            child.check(typeChecker, typeTable);
+        });
     }
 
     print(): string {
 
         const printNode = (node: Node, indentAmount: number = 0): string => {
 
-            const nodeName = `${node.getName()} with id ${node.getId()}`;
+            const nodeName = `${node.getId()} – ${node.getName()}`;
             const nodeValue = node.getValue();
 
             const attributes = node.getAttributes();

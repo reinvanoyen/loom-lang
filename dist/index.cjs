@@ -332,6 +332,14 @@ var Node = class _Node {
    */
   constructor(value = "") {
     /**
+     * @protected
+     */
+    this.id = null;
+    /**
+     * @private
+     */
+    this.symbol = null;
+    /**
      *
      * @protected
      */
@@ -359,6 +367,18 @@ var Node = class _Node {
    */
   getId() {
     return this.id;
+  }
+  /**
+   * @param symbol
+   */
+  setSymbol(symbol) {
+    this.symbol = symbol;
+  }
+  /**
+   *
+   */
+  getSymbol() {
+    return this.symbol;
   }
   /**
    *
@@ -452,10 +472,23 @@ var Node = class _Node {
   compile(compiler) {
   }
   bind(binder) {
+    this.getChildren().forEach((child) => {
+      child.bind(binder);
+    });
+  }
+  resolve(typeResolver) {
+    this.getChildren().forEach((child) => {
+      child.resolve(typeResolver);
+    });
+  }
+  check(typeChecker, typeTable) {
+    this.getChildren().forEach((child) => {
+      child.check(typeChecker, typeTable);
+    });
   }
   print() {
     const printNode = (node, indentAmount = 0) => {
-      const nodeName = `${node.getName()} with id ${node.getId()}`;
+      const nodeName = `${node.getId()} \u2013 ${node.getName()}`;
       const nodeValue = node.getValue();
       const attributes = node.getAttributes();
       const attributesString = [];
@@ -480,6 +513,11 @@ var Node = class _Node {
 
 // src/parser/nodes/Identifier.ts
 var Identifier = class extends Node {
+  bind(binder) {
+    if (this.getValue() !== "string") {
+      this.setSymbol(binder.get(this.getValue()));
+    }
+  }
   compile() {
   }
 };
@@ -527,6 +565,11 @@ var Type = class _Type extends Node {
     }
     return false;
   }
+  bind(binder) {
+    this.getChildren().forEach((child) => {
+      child.bind(binder);
+    });
+  }
   compile() {
   }
 };
@@ -558,6 +601,8 @@ var VariantDeclaration = class _VariantDeclaration extends Node {
       return true;
     }
     return false;
+  }
+  check(typeChecker, typeTable) {
   }
   compile() {
   }
@@ -607,6 +652,18 @@ var StyleBlock = class _StyleBlock extends Node {
   }
 };
 
+// src/context/Symbol.ts
+var Symbol2 = class {
+  /**
+   * @param type
+   * @param nodeId
+   */
+  constructor(type, nodeId) {
+    this.type = type;
+    this.nodeId = nodeId;
+  }
+};
+
 // src/parser/nodes/Class.ts
 var Class = class _Class extends Node {
   static parse(parser) {
@@ -633,7 +690,13 @@ var Class = class _Class extends Node {
     return false;
   }
   bind(binder) {
-    binder.symbols().registerClass(this.getValue());
+    this.setSymbol(new Symbol2("type", this.getId()));
+    binder.add(this.getValue(), this.getSymbol());
+  }
+  resolve(typeResolver) {
+    this.getChildren().forEach((child) => {
+      child.resolve(typeResolver);
+    });
   }
   compile(compiler) {
   }
@@ -647,7 +710,7 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
       parser.insert(new _TypeDeclaration(parser.getCurrentValue()));
       parser.in();
       parser.advance();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ":");
+      parser.expectWithValue("Symbol" /* SYMBOL */, "=");
       parser.advance();
       Type.parse(parser);
       parser.out();
@@ -657,31 +720,19 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
     }
     return false;
   }
-  getTypeSymbols(children) {
-    const options = [];
-    children.forEach((child) => {
-      child.getChildren().forEach((typeChild) => {
-        if (typeChild instanceof Identifier) {
-          options.push({
-            type: "identifier",
-            value: typeChild.getValue()
-          });
-        }
-        if (typeChild instanceof String) {
-          options.push({
-            type: "string",
-            value: typeChild.getValue()
-          });
-        }
-      });
-    });
-    return options;
-  }
   bind(binder) {
-    binder.symbols().declareType(
-      this.getValue(),
-      this.getTypeSymbols(this.getChildren())
-    );
+    this.setSymbol(new Symbol2("type", this.getId()));
+    binder.add(this.getValue(), this.getSymbol());
+    this.getChildren().forEach((child) => {
+      child.bind(binder);
+    });
+  }
+  resolve(typeResolver) {
+    const rhs = this.getChildren().find((child) => child instanceof Type);
+    if (!rhs) {
+      throw new Error(`TypeResolver error: missing RHS type for '${this.getValue()}'`);
+    }
+    typeResolver.defineType(this.getValue(), typeResolver.resolveType(rhs));
   }
   compile(compiler) {
   }
@@ -701,7 +752,9 @@ var Namespace = class _Namespace extends Node {
     return false;
   }
   bind(binder) {
-    binder.symbols().setNamespace(this.getValue());
+    binder.namespace(this.getValue());
+  }
+  resolve(typeResolver) {
   }
   compile(compiler) {
   }
@@ -738,6 +791,11 @@ var AstNode = class extends Node {
   bind(binder) {
     this.getChildren().forEach((child) => {
       child.bind(binder);
+    });
+  }
+  resolve(typeResolver) {
+    this.getChildren().forEach((child) => {
+      child.resolve(typeResolver);
     });
   }
 };
@@ -1122,19 +1180,42 @@ var Binder = class {
    * @param symbolTable
    */
   constructor(symbolTable) {
+    /**
+     * @private
+     */
+    this.currentNamespace = "global";
     this.symbolTable = symbolTable;
-  }
-  /**
-   *
-   */
-  symbols() {
-    return this.symbolTable;
   }
   /**
    * @param ast
    */
   bind(ast) {
     ast.bind(this);
+  }
+  /**
+   * @param ns
+   */
+  namespace(ns) {
+    this.currentNamespace = ns;
+  }
+  /**
+   * @param name
+   * @param symbol
+   */
+  add(name, symbol) {
+    if (this.symbolTable.hasSymbol(this.currentNamespace, name)) {
+      throw new Error(`Binding error: ${name} already exists`);
+    }
+    this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
+  }
+  /**
+   * @param name
+   */
+  get(name) {
+    if (!this.symbolTable.hasSymbol(this.currentNamespace, name)) {
+      throw new Error(`Binding error: couldn't get symbol with name ${name}`);
+    }
+    return this.symbolTable.getSymbol(this.currentNamespace, name);
   }
 };
 
@@ -1144,63 +1225,179 @@ var SymbolTable = class {
     /**
      * @private
      */
+    this.symbols = {};
+  }
+  /**
+   * @param ns
+   * @param name
+   * @param symbol
+   */
+  registerSymbol(ns, name, symbol) {
+    if (!this.symbols[ns]) {
+      this.symbols[ns] = {};
+    }
+    this.symbols[ns][name] = symbol;
+  }
+  /**
+   * @param ns
+   * @param name
+   */
+  hasSymbol(ns, name) {
+    if (!this.symbols[ns]) {
+      return false;
+    }
+    if (!this.symbols[ns][name]) {
+      return false;
+    }
+    return true;
+  }
+  /**
+   * @param ns
+   * @param name
+   */
+  getSymbol(ns, name) {
+    if (this.hasSymbol(ns, name)) {
+      return this.symbols[ns][name];
+    }
+    return null;
+  }
+};
+
+// src/analyzer/TypeResolver.ts
+var TypeResolver = class {
+  /**
+   * @param typeTable
+   */
+  constructor(typeTable, symbolTable) {
+    /**
+     * @private
+     */
+    this.currentNamespace = "global";
+    this.typeTable = typeTable;
+    this.symbolTable = symbolTable;
+  }
+  /**
+   * @param name
+   * @param type
+   */
+  defineType(name, type) {
+    this.typeTable.registerType(name, type);
+  }
+  /**
+   * @param type
+   */
+  resolveType(type) {
+    const children = type.getChildren();
+    if (children.length > 1) {
+      return {
+        kind: "union",
+        members: this.normalizeUnion(children)
+      };
+    }
+    if (children.length === 1) {
+      return this.resolveTypeNodeChild(children[0]);
+    }
+    throw new Error("TypeResolver error, no types in type?");
+  }
+  /**
+   * @param typeChild
+   */
+  resolveTypeNodeChild(typeChild) {
+    if (typeChild instanceof Identifier) {
+      if (typeChild.getValue() === "string") {
+        return {
+          kind: "primitive",
+          name: "string"
+        };
+      }
+      const symbol = typeChild.getSymbol();
+      if (!symbol) {
+        throw new Error(`Unbound type identifier '${typeChild.getValue()}'`);
+      }
+      return { kind: "ref", symbol };
+    }
+    if (typeChild instanceof String) {
+      return {
+        kind: "literal",
+        value: typeChild.getValue()
+      };
+    }
+    throw new Error("Unknown type node");
+  }
+  /**
+   * @param nodes
+   * @private
+   */
+  normalizeUnion(nodes) {
+    const resolvedTypes = [];
+    nodes.forEach((node) => {
+      resolvedTypes.push(this.resolveTypeNodeChild(node));
+    });
+    return resolvedTypes;
+  }
+  /**
+   * @param ast
+   */
+  resolve(ast) {
+    ast.resolve(this);
+  }
+};
+
+// src/analyzer/TypeTable.ts
+var TypeTable = class {
+  constructor() {
+    /**
+     * @private
+     */
     this.types = {};
-    /**
-     * @private
-     */
-    this.namespaces = [];
-    /**
-     * @private
-     */
-    this.currentNamespace = null;
-    /**
-     * @private
-     */
-    this.classes = {};
+  }
+  /**
+   * @param name
+   * @param type
+   */
+  registerType(name, type) {
+    this.types[name] = type;
   }
   /**
    * @param name
    */
-  setNamespace(name) {
-    if (!this.namespaces.includes(name)) {
-      this.namespaces.push(name);
-    }
-    this.currentNamespace = name;
-  }
-  /**
-   *
-   */
-  getNamespace() {
-    return this.currentNamespace;
-  }
-  /**
-   *
-   * @param name
-   */
-  registerClass(name) {
-    if (!this.classes[this.currentNamespace]) {
-      this.classes[this.currentNamespace] = [];
-    }
-    this.classes[this.currentNamespace].push(name);
-  }
-  /**
-   * @param name
-   * @param symbols
-   */
-  declareType(name, symbols) {
-    if (this.types[name]) {
-      throw new Error(`Runtime error, type ${name} already exists`);
-    }
-    this.types[name] = symbols;
+  hasType(name) {
+    return typeof this.types[name] !== "undefined";
   }
   /**
    * @param name
    */
   getType(name) {
-    if (!this.types[name]) {
-      throw new Error(`Runtime error, type ${name} doesn't exist`);
+    if (this.hasType(name)) {
+      return this.types[name];
     }
-    return this.types[name];
+    return null;
+  }
+};
+
+// src/analyzer/DiagnosticsResult.ts
+var DiagnosticsResult = class {
+  constructor() {
+    this.messages = [];
+  }
+};
+
+// src/analyzer/TypeChecker.ts
+var TypeChecker = class {
+  /**
+   * @param diagnostics
+   */
+  constructor(diagnostics) {
+    this.diagnostics = diagnostics;
+  }
+  /**
+   * @param ast
+   */
+  check(ast, typeTable) {
+    ast.check(this, typeTable);
+  }
+  isAssignable(type, value) {
+    return true;
   }
 };
 
@@ -1213,10 +1410,21 @@ var Loom = class {
   static make(code) {
     const tokens = new Lexer().tokenize(code);
     const ast = new Parser().parse(tokens);
+    console.log("=== AST ===");
     console.log(ast.print());
     const symbolTable = new SymbolTable();
     new Binder(symbolTable).bind(ast);
+    console.log("=== SYMBOL TABLE ===");
     console.log(symbolTable);
+    const typeTable = new TypeTable();
+    const resolver = new TypeResolver(typeTable, symbolTable);
+    resolver.resolve(ast);
+    console.log("=== TYPE TABLE ===");
+    console.log(typeTable);
+    const diagnostics = new DiagnosticsResult();
+    new TypeChecker(diagnostics).check(ast, typeTable);
+    console.log("=== DIAGNOSTICS ===");
+    console.log(diagnostics);
     return new Compiler(new OutputBuffer()).compile(ast);
   }
 };

@@ -6,6 +6,7 @@ import Namespace from './nodes/Namespace';
 import Compiler from '../compiler/Compiler';
 import ImportStatement from './nodes/ImportStatement';
 import Binder from '../context/Binder';
+import TypeResolver from '../analyzer/TypeResolver';
 
 export default class AstNode extends Node {
 
@@ -30,6 +31,12 @@ export default class AstNode extends Node {
     bind(binder: Binder) {
         this.getChildren().forEach(child => {
             child.bind(binder);
+        });
+    }
+
+    resolve(typeResolver: TypeResolver) {
+        this.getChildren().forEach(child => {
+            child.resolve(typeResolver);
         });
     }
 }

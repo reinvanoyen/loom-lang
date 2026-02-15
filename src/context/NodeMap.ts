@@ -1,7 +1,6 @@
 import Node from '../parser/Node';
 
 export default class NodeMap {
-
     /**
      * @private
      */

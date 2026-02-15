@@ -2,6 +2,8 @@ import Node from '../Node';
 import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import Type from './Type';
+import TypeChecker from '../../analyzer/TypeChecker';
+import TypeTable from '../../analyzer/TypeTable';
 
 export default class VariantDeclaration extends Node {
     /**
@@ -37,6 +39,11 @@ export default class VariantDeclaration extends Node {
         }
 
         return false;
+    }
+
+    check(typeChecker: TypeChecker, typeTable: TypeTable) {
+        //typeChecker.isAssignable(typeTable.getType(this.getAttribute('name')))
+        //console.log(this.getAttribute('default'), typeTable.getType());
     }
 
     compile() {

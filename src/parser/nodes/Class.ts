@@ -6,6 +6,8 @@ import SlotDeclaration from './SlotDeclaration';
 import StyleBlock from './StyleBlock';
 import Binder from '../../context/Binder';
 import Compiler from '../../compiler/Compiler';
+import Symbol from '../../context/Symbol';
+import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class Class extends Node {
 
@@ -47,8 +49,14 @@ export default class Class extends Node {
     }
 
     bind(binder: Binder) {
-        // Register the class on runtime
-        binder.symbols().registerClass(this.getValue());
+        this.setSymbol(new Symbol('type', this.getId()));
+        binder.add(this.getValue(), this.getSymbol());
+    }
+
+    resolve(typeResolver: TypeResolver) {
+        this.getChildren().forEach(child => {
+            child.resolve(typeResolver);
+        });
     }
 
     compile(compiler: Compiler) {

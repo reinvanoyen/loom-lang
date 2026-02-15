@@ -5,16 +5,6 @@ export default class Symbol {
     /**
      * @private
      */
-    private id: number;
-
-    /**
-     * @private
-     */
-    private name: string;
-
-    /**
-     * @private
-     */
     private type: SymbolType;
 
     /**

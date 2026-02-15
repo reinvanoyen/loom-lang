@@ -3,6 +3,7 @@ import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import Identifier from './Identifier';
 import String from './String';
+import Binder from '../../context/Binder';
 
 export default class Type extends Node {
     /**
@@ -48,6 +49,12 @@ export default class Type extends Node {
         }
 
         return false;
+    }
+
+    bind(binder: Binder) {
+        this.getChildren().forEach(child => {
+            child.bind(binder);
+        });
     }
 
     compile() {

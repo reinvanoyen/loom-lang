@@ -3,6 +3,7 @@ import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import Compiler from '../../compiler/Compiler';
 import Binder from '../../context/Binder';
+import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class Namespace extends Node {
 
@@ -23,8 +24,11 @@ export default class Namespace extends Node {
     }
 
     bind(binder: Binder) {
-        // Set the current namespace
-        binder.symbols().setNamespace(this.getValue());
+        binder.namespace(this.getValue());
+    }
+
+    resolve(typeResolver: TypeResolver) {
+        //typeResolver.namespace(this.getValue());
     }
 
     compile(compiler: Compiler) {
