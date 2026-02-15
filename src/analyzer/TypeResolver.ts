@@ -4,11 +4,11 @@ import TypeTable from './TypeTable';
 import SymbolTable from '../context/SymbolTable';
 import Type from '../parser/nodes/Type';
 import { ResolvedType } from '../types/analyzer';
-import Identifier from '../parser/nodes/Identifier';
-import String from '../parser/nodes/String';
+import IdentifierType from '../parser/nodes/IdentifierType';
+import StringType from '../parser/nodes/StringType';
 import Symbol from '../context/Symbol';
 
-type TypeChildNode = Identifier | String;
+type TypeChildNode = IdentifierType | StringType;
 
 export default class TypeResolver {
     /**
@@ -69,7 +69,7 @@ export default class TypeResolver {
      */
     private resolveTypeNodeChild(typeChild: TypeChildNode): ResolvedType {
 
-        if (typeChild instanceof Identifier) {
+        if (typeChild instanceof IdentifierType) {
 
             if (typeChild.getValue() === 'string') {
                 return {
@@ -87,7 +87,7 @@ export default class TypeResolver {
             return { kind: 'ref', symbolId: symbol.getId() };
         }
 
-        if (typeChild instanceof String) {
+        if (typeChild instanceof StringType) {
             return {
                 kind: 'literal',
                 value: typeChild.getValue()

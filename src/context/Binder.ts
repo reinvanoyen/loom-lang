@@ -55,4 +55,18 @@ export default class Binder {
         }
         return this.symbolTable.getSymbol(this.currentNamespace, name);
     }
+
+    // GLOBAL TYPE SPACE
+    addType(name: string, symbol: Symbol) {
+        if (this.symbolTable.hasType(name)) {
+            throw new Error(`Binding error: type '${name}' already exists`);
+        }
+        // optional metadata:
+        symbol.setNamespace('global'); // or store declaredNamespace separately
+        this.symbolTable.registerType(name, symbol);
+    }
+
+    getType(name: string) {
+        return this.symbolTable.getType(name);
+    }
 }

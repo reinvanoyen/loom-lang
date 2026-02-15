@@ -1,52 +1,34 @@
-import Symbol from './Symbol';
-import { Nullable } from '../types/nullable';
 import { Namespace } from '../types/namespace';
+import Symbol from '../context/Symbol';
 
 export default class SymbolTable {
-    /**
-     * @private
-     */
     private symbols: Record<Namespace, Record<string, Symbol>> = {};
+    private types: Record<string, Symbol> = {}; // global type space
 
-    /**
-     * @param ns
-     * @param name
-     * @param symbol
-     */
+    // --- types (global) ---
+    public registerType(name: string, symbol: Symbol) {
+        this.types[name] = symbol;
+    }
+
+    public hasType(name: string) {
+        return typeof this.types[name] !== 'undefined';
+    }
+
+    public getType(name: string): Symbol | null {
+        return this.types[name] ?? null;
+    }
+
+    // --- values/classes (namespaced) ---
     public registerSymbol(ns: Namespace, name: string, symbol: Symbol) {
-
-        symbol.setNamespace(ns);
-
-        if (! this.symbols[ns]) {
-            this.symbols[ns] = {};
-        }
+        if (!this.symbols[ns]) this.symbols[ns] = {};
         this.symbols[ns][name] = symbol;
     }
 
-    /**
-     * @param ns
-     * @param name
-     */
     public hasSymbol(ns: Namespace, name: string) {
-        if (! this.symbols[ns]) {
-            return false;
-        }
-
-        if (! this.symbols[ns][name]) {
-            return false;
-        }
-
-        return true;
+        return !!this.symbols[ns] && typeof this.symbols[ns][name] !== 'undefined';
     }
 
-    /**
-     * @param ns
-     * @param name
-     */
-    public getSymbol(ns: Namespace, name: string): Nullable<Symbol> {
-        if (this.hasSymbol(ns, name)) {
-            return this.symbols[ns][name];
-        }
-        return null;
+    public getSymbol(ns: Namespace, name: string): Symbol | null {
+        return this.symbols[ns]?.[name] ?? null;
     }
 }

@@ -34,11 +34,9 @@ export default class TypeDeclaration extends Node {
 
     bind(binder: Binder) {
         this.setSymbol(new Symbol('type', this.getId()));
-        binder.add(this.getValue(), this.getSymbol());
+        binder.addType(this.getValue(), this.getSymbol());
 
-        this.getChildren().forEach(child => {
-            child.bind(binder);
-        });
+        this.getChildren().forEach(child => child.bind(binder));
     }
 
     resolve(typeResolver: TypeResolver) {

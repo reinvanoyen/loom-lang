@@ -486,19 +486,19 @@ var Node = class _Node {
   }
 };
 
-// src/parser/nodes/Identifier.ts
-var Identifier = class extends Node {
+// src/parser/nodes/IdentifierType.ts
+var IdentifierType = class extends Node {
   bind(binder) {
     if (this.getValue() !== "string") {
-      this.setSymbol(binder.get(this.getValue()));
+      this.setSymbol(binder.getType(this.getValue()));
     }
   }
   compile() {
   }
 };
 
-// src/parser/nodes/String.ts
-var String = class extends Node {
+// src/parser/nodes/StringType.ts
+var StringType = class extends Node {
   compile() {
   }
 };
@@ -520,12 +520,12 @@ var Type = class _Type extends Node {
   }
   static parseType(parser) {
     if (parser.accept("Ident" /* IDENT */)) {
-      parser.insert(new Identifier(parser.getCurrentValue()));
+      parser.insert(new IdentifierType(parser.getCurrentValue()));
       parser.advance();
       return true;
     }
     if (parser.accept("String" /* STRING */)) {
-      parser.insert(new String(parser.getCurrentValue()));
+      parser.insert(new StringType(parser.getCurrentValue()));
       parser.advance();
       return true;
     }
@@ -710,10 +710,8 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
   }
   bind(binder) {
     this.setSymbol(new Symbol("type", this.getId()));
-    binder.add(this.getValue(), this.getSymbol());
-    this.getChildren().forEach((child) => {
-      child.bind(binder);
-    });
+    binder.addType(this.getValue(), this.getSymbol());
+    this.getChildren().forEach((child) => child.bind(binder));
   }
   resolve(typeResolver) {
     const rhs = this.getChildren().find((child) => child instanceof Type);
@@ -1205,50 +1203,48 @@ var Binder = class {
     }
     return this.symbolTable.getSymbol(this.currentNamespace, name);
   }
+  // GLOBAL TYPE SPACE
+  addType(name, symbol) {
+    if (this.symbolTable.hasType(name)) {
+      throw new Error(`Binding error: type '${name}' already exists`);
+    }
+    symbol.setNamespace("global");
+    this.symbolTable.registerType(name, symbol);
+  }
+  getType(name) {
+    return this.symbolTable.getType(name);
+  }
 };
 
 // src/context/SymbolTable.ts
 var SymbolTable = class {
   constructor() {
-    /**
-     * @private
-     */
     this.symbols = {};
+    this.types = {};
   }
-  /**
-   * @param ns
-   * @param name
-   * @param symbol
-   */
+  // global type space
+  // --- types (global) ---
+  registerType(name, symbol) {
+    this.types[name] = symbol;
+  }
+  hasType(name) {
+    return typeof this.types[name] !== "undefined";
+  }
+  getType(name) {
+    var _a;
+    return (_a = this.types[name]) != null ? _a : null;
+  }
+  // --- values/classes (namespaced) ---
   registerSymbol(ns, name, symbol) {
-    symbol.setNamespace(ns);
-    if (!this.symbols[ns]) {
-      this.symbols[ns] = {};
-    }
+    if (!this.symbols[ns]) this.symbols[ns] = {};
     this.symbols[ns][name] = symbol;
   }
-  /**
-   * @param ns
-   * @param name
-   */
   hasSymbol(ns, name) {
-    if (!this.symbols[ns]) {
-      return false;
-    }
-    if (!this.symbols[ns][name]) {
-      return false;
-    }
-    return true;
+    return !!this.symbols[ns] && typeof this.symbols[ns][name] !== "undefined";
   }
-  /**
-   * @param ns
-   * @param name
-   */
   getSymbol(ns, name) {
-    if (this.hasSymbol(ns, name)) {
-      return this.symbols[ns][name];
-    }
-    return null;
+    var _a, _b;
+    return (_b = (_a = this.symbols[ns]) == null ? void 0 : _a[name]) != null ? _b : null;
   }
 };
 
@@ -1293,7 +1289,7 @@ var TypeResolver = class {
    * @param typeChild
    */
   resolveTypeNodeChild(typeChild) {
-    if (typeChild instanceof Identifier) {
+    if (typeChild instanceof IdentifierType) {
       if (typeChild.getValue() === "string") {
         return {
           kind: "primitive",
@@ -1306,7 +1302,7 @@ var TypeResolver = class {
       }
       return { kind: "ref", symbolId: symbol.getId() };
     }
-    if (typeChild instanceof String) {
+    if (typeChild instanceof StringType) {
       return {
         kind: "literal",
         value: typeChild.getValue()

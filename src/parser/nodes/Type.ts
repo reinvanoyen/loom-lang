@@ -1,8 +1,8 @@
 import Node from '../Node';
 import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
-import Identifier from './Identifier';
-import String from './String';
+import IdentifierType from './IdentifierType';
+import StringType from './StringType';
 import Binder from '../../context/Binder';
 
 export default class Type extends Node {
@@ -26,13 +26,13 @@ export default class Type extends Node {
 
     private static parseType(parser: Parser) {
         if (parser.accept(TokenType.IDENT)) {
-            parser.insert(new Identifier(parser.getCurrentValue()))
+            parser.insert(new IdentifierType(parser.getCurrentValue()))
             parser.advance();
             return true;
         }
 
         if (parser.accept(TokenType.STRING)) {
-            parser.insert(new String(parser.getCurrentValue()))
+            parser.insert(new StringType(parser.getCurrentValue()))
             parser.advance();
             return true;
         }

@@ -1,11 +1,11 @@
 import Node from '../Node';
 import Binder from '../../context/Binder';
 
-export default class Identifier extends Node {
+export default class IdentifierType extends Node {
 
     bind(binder: Binder) {
         if (this.getValue() !== 'string') {
-            this.setSymbol(binder.get(this.getValue()));
+            this.setSymbol(binder.getType(this.getValue()));
         }
     }
 
