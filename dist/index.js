@@ -628,14 +628,27 @@ var StyleBlock = class _StyleBlock extends Node {
 };
 
 // src/context/Symbol.ts
+var currentId = 0;
 var Symbol = class {
   /**
    * @param type
    * @param nodeId
    */
   constructor(type, nodeId) {
+    this.id = currentId++;
     this.type = type;
     this.nodeId = nodeId;
+  }
+  /**
+   */
+  getId() {
+    return this.id;
+  }
+  /**
+   * @param ns
+   */
+  setNamespace(ns) {
+    this.namespace = ns;
   }
 };
 
@@ -665,7 +678,7 @@ var Class = class _Class extends Node {
     return false;
   }
   bind(binder) {
-    this.setSymbol(new Symbol("type", this.getId()));
+    this.setSymbol(new Symbol("class", this.getId()));
     binder.add(this.getValue(), this.getSymbol());
   }
   resolve(typeResolver) {
@@ -707,7 +720,7 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
     if (!rhs) {
       throw new Error(`TypeResolver error: missing RHS type for '${this.getValue()}'`);
     }
-    typeResolver.defineType(this.getValue(), typeResolver.resolveType(rhs));
+    typeResolver.defineType(this.getSymbol(), typeResolver.resolveType(rhs));
   }
   compile(compiler) {
   }
@@ -1208,6 +1221,7 @@ var SymbolTable = class {
    * @param symbol
    */
   registerSymbol(ns, name, symbol) {
+    symbol.setNamespace(ns);
     if (!this.symbols[ns]) {
       this.symbols[ns] = {};
     }
@@ -1252,11 +1266,12 @@ var TypeResolver = class {
     this.symbolTable = symbolTable;
   }
   /**
-   * @param name
+   *
+   * @param symbol
    * @param type
    */
-  defineType(name, type) {
-    this.typeTable.registerType(name, type);
+  defineType(symbol, type) {
+    this.typeTable.registerType(symbol.getId(), type);
   }
   /**
    * @param type
@@ -1289,7 +1304,7 @@ var TypeResolver = class {
       if (!symbol) {
         throw new Error(`Unbound type identifier '${typeChild.getValue()}'`);
       }
-      return { kind: "ref", symbol };
+      return { kind: "ref", symbolId: symbol.getId() };
     }
     if (typeChild instanceof String) {
       return {
@@ -1327,24 +1342,24 @@ var TypeTable = class {
     this.types = {};
   }
   /**
-   * @param name
+   * @param symbolId
    * @param type
    */
-  registerType(name, type) {
-    this.types[name] = type;
+  registerType(symbolId, type) {
+    this.types[symbolId] = type;
   }
   /**
-   * @param name
+   * @param symbolId
    */
-  hasType(name) {
-    return typeof this.types[name] !== "undefined";
+  hasType(symbolId) {
+    return typeof this.types[symbolId] !== "undefined";
   }
   /**
-   * @param name
+   * @param symbolId
    */
-  getType(name) {
-    if (this.hasType(name)) {
-      return this.types[name];
+  getType(symbolId) {
+    if (this.hasType(symbolId)) {
+      return this.types[symbolId];
     }
     return null;
   }
@@ -1371,6 +1386,10 @@ var TypeChecker = class {
   check(ast, typeTable) {
     ast.check(this, typeTable);
   }
+  /**
+   * @param type
+   * @param value
+   */
   isAssignable(type, value) {
     return true;
   }

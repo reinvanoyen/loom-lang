@@ -14,6 +14,9 @@ export default class SymbolTable {
      * @param symbol
      */
     public registerSymbol(ns: Namespace, name: string, symbol: Symbol) {
+
+        symbol.setNamespace(ns);
+
         if (! this.symbols[ns]) {
             this.symbols[ns] = {};
         }

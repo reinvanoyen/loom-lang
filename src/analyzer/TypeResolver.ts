@@ -6,6 +6,7 @@ import Type from '../parser/nodes/Type';
 import { ResolvedType } from '../types/analyzer';
 import Identifier from '../parser/nodes/Identifier';
 import String from '../parser/nodes/String';
+import Symbol from '../context/Symbol';
 
 type TypeChildNode = Identifier | String;
 
@@ -34,11 +35,12 @@ export default class TypeResolver {
     }
 
     /**
-     * @param name
+     *
+     * @param symbol
      * @param type
      */
-    defineType(name: string, type: ResolvedType) {
-        this.typeTable.registerType(name, type);
+    defineType(symbol: Symbol, type: ResolvedType) {
+        this.typeTable.registerType(symbol.getId(), type);
     }
 
     /**
@@ -82,7 +84,7 @@ export default class TypeResolver {
                 throw new Error(`Unbound type identifier '${typeChild.getValue()}'`);
             }
 
-            return { kind: 'ref', symbol };
+            return { kind: 'ref', symbolId: symbol.getId() };
         }
 
         if (typeChild instanceof String) {

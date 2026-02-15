@@ -49,7 +49,7 @@ export default class TypeDeclaration extends Node {
             throw new Error(`TypeResolver error: missing RHS type for '${this.getValue()}'`);
         }
 
-        typeResolver.defineType(this.getValue(), typeResolver.resolveType(rhs));
+        typeResolver.defineType(this.getSymbol(), typeResolver.resolveType(rhs));
     }
 
     compile(compiler: Compiler) {

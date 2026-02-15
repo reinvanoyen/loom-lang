@@ -5,29 +5,29 @@ export default class TypeTable {
     /**
      * @private
      */
-    private types: Record<string, ResolvedType> = {};
+    private types: Record<number, ResolvedType> = {};
 
     /**
-     * @param name
+     * @param symbolId
      * @param type
      */
-    public registerType(name: string, type: ResolvedType) {
-        this.types[name] = type;
+    public registerType(symbolId: number, type: ResolvedType) {
+        this.types[symbolId] = type;
     }
 
     /**
-     * @param name
+     * @param symbolId
      */
-    public hasType(name: string) {
-        return (typeof this.types[name] !== 'undefined');
+    public hasType(symbolId: number) {
+        return (typeof this.types[symbolId] !== 'undefined');
     }
 
     /**
-     * @param name
+     * @param symbolId
      */
-    public getType(name: string): Nullable<ResolvedType> {
-        if (this.hasType(name)) {
-            return this.types[name];
+    public getType(symbolId: number): Nullable<ResolvedType> {
+        if (this.hasType(symbolId)) {
+            return this.types[symbolId];
         }
         return null;
     }
