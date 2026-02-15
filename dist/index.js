@@ -647,10 +647,27 @@ var Namespace = class _Namespace extends Node {
   }
 };
 
+// src/parser/nodes/ImportStatement.ts
+var ImportStatement = class _ImportStatement extends Node {
+  static parse(parser) {
+    if (parser.skipWithValue("Ident" /* IDENT */, "import")) {
+      parser.expect("String" /* STRING */);
+      parser.insert(new _ImportStatement(parser.getCurrentValue()));
+      parser.advance();
+      parser.expectWithValue("Symbol" /* SYMBOL */, ";");
+      parser.advance();
+      return true;
+    }
+    return false;
+  }
+  compile(compiler) {
+  }
+};
+
 // src/parser/AstNode.ts
 var AstNode = class extends Node {
   static parse(parser) {
-    while (Namespace.parse(parser) || TypeDeclaration.parse(parser) || Class.parse(parser)) ;
+    while (Namespace.parse(parser) || ImportStatement.parse(parser) || TypeDeclaration.parse(parser) || Class.parse(parser)) ;
     return true;
   }
   compile(compiler) {

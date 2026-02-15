@@ -4,6 +4,7 @@ import Class from './nodes/Class';
 import TypeDeclaration from './nodes/TypeDeclaration';
 import Namespace from './nodes/Namespace';
 import Compiler from '../compiler/Compiler';
+import ImportStatement from './nodes/ImportStatement';
 
 export default class AstNode extends Node {
 
@@ -11,6 +12,7 @@ export default class AstNode extends Node {
         
         while(
             Namespace.parse(parser) ||
+            ImportStatement.parse(parser) ||
             TypeDeclaration.parse(parser) ||
             Class.parse(parser)
         );
