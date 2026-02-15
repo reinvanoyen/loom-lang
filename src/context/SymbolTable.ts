@@ -1,4 +1,16 @@
-export default class Runtime {
+export type TypeSymbol = {
+    type: 'string' | 'identifier',
+    value: string;
+};
+
+// @todo turn this into a list of names and their references
+// --> see Symbol class
+export default class SymbolTable {
+
+    /**
+     * @private
+     */
+    private types: Record<string, TypeSymbol[]> = {};
 
     /**
      * @private
@@ -43,5 +55,28 @@ export default class Runtime {
         }
 
         this.classes[this.currentNamespace].push(name);
+    }
+
+    /**
+     * @param name
+     * @param symbols
+     */
+    public declareType(name: string, symbols: TypeSymbol[]) {
+        if (this.types[name]) {
+            throw new Error(`Runtime error, type ${name} already exists`);
+        }
+
+        this.types[name] = symbols;
+    }
+
+    /**
+     * @param name
+     */
+    public getType(name: string): TypeSymbol[] {
+        if (! this.types[name]) {
+            throw new Error(`Runtime error, type ${name} doesn't exist`);
+        }
+
+        return this.types[name];
     }
 }

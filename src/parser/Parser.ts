@@ -6,6 +6,12 @@ import { Nullable } from '../types/nullable';
 export default class Parser {
 
     /**
+     * The current id
+     * @private
+     */
+    private currentId: number = 0;
+
+    /**
      * The current position of the cursor
      * @private
      */
@@ -294,8 +300,19 @@ export default class Parser {
      * @param node
      */
     public insert(node: Node) {
+        this.assignNewId(node);
         node.setParent(this.scope);
         this.scope.addChild(node);
+    }
+
+    /**
+     * @param node
+     * @private
+     */
+    private assignNewId(node: Node) {
+        this.currentId++;
+        node.setId(this.currentId);
+
     }
 
     /**

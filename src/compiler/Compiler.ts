@@ -1,12 +1,12 @@
 import Node from '../parser/Node';
 import OutputBuffer from './OutputBuffer';
-import Runtime from '../runtime/Runtime';
+import SymbolTable from '../context/SymbolTable';
 
 export default class Compiler {
     /**
      * @private
      */
-    private readonly runtime: Runtime;
+    private readonly symbolTable: SymbolTable;
 
     /**
      * @private
@@ -16,13 +16,15 @@ export default class Compiler {
     /**
      *
      */
-    constructor(runtime: Runtime) {
-        this.runtime = runtime;
-        this.buffer = new OutputBuffer();
+    constructor(outputBuffer: OutputBuffer) {
+        this.buffer = outputBuffer;
     }
 
-    public getRuntime(): Runtime {
-        return this.runtime;
+    /**
+     *
+     */
+    public symbols(): SymbolTable {
+        return this.symbolTable;
     }
 
     /**

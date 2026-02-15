@@ -5,6 +5,7 @@ import TypeDeclaration from './nodes/TypeDeclaration';
 import Namespace from './nodes/Namespace';
 import Compiler from '../compiler/Compiler';
 import ImportStatement from './nodes/ImportStatement';
+import Binder from '../context/Binder';
 
 export default class AstNode extends Node {
 
@@ -23,6 +24,12 @@ export default class AstNode extends Node {
     compile(compiler: Compiler) {
         this.getChildren().forEach(child => {
             child.compile(compiler);
+        });
+    }
+
+    bind(binder: Binder) {
+        this.getChildren().forEach(child => {
+            child.bind(binder);
         });
     }
 }

@@ -4,6 +4,7 @@ import 'Button.loom';
 import 'types.loom';
 
 type Size: 'small' | 'medium' | 'large';
+type ExtraSize: Size | 'huge';
 type Intent: 'neutral' | 'danger' | 'warning' | 'success';
 
 class Button {

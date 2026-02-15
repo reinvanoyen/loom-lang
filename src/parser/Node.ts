@@ -2,8 +2,14 @@ import { Nullable } from '../types/nullable';
 import { AttributeValue } from '../types/attribute';
 import Parser from './Parser';
 import Compiler from '../compiler/Compiler';
+import Binder from '../context/Binder';
 
 export default class Node {
+
+    /**
+     * @protected
+     */
+    private id: number;
 
     /**
      *
@@ -35,6 +41,20 @@ export default class Node {
      */
     constructor(value: string = '') {
         this.value = value;
+    }
+
+    /**
+     * @param id
+     */
+    setId(id: number) {
+        this.id = id;
+    }
+
+    /**
+     *
+     */
+    getId(): number {
+        return this.id;
     }
 
     /**
@@ -143,11 +163,15 @@ export default class Node {
         // todo
     }
 
+    bind(binder: Binder) {
+        // todo
+    }
+
     print(): string {
 
         const printNode = (node: Node, indentAmount: number = 0): string => {
 
-            const nodeName = node.getName();
+            const nodeName = `${node.getName()} with id ${node.getId()}`;
             const nodeValue = node.getValue();
 
             const attributes = node.getAttributes();

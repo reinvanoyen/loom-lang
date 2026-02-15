@@ -349,6 +349,18 @@ var Node = class _Node {
     this.value = value;
   }
   /**
+   * @param id
+   */
+  setId(id) {
+    this.id = id;
+  }
+  /**
+   *
+   */
+  getId() {
+    return this.id;
+  }
+  /**
    *
    */
   getName() {
@@ -439,9 +451,11 @@ var Node = class _Node {
    */
   compile(compiler) {
   }
+  bind(binder) {
+  }
   print() {
     const printNode = (node, indentAmount = 0) => {
-      const nodeName = node.getName();
+      const nodeName = `${node.getName()} with id ${node.getId()}`;
       const nodeValue = node.getValue();
       const attributes = node.getAttributes();
       const attributesString = [];
@@ -618,15 +632,10 @@ var Class = class _Class extends Node {
     }
     return false;
   }
+  bind(binder) {
+    binder.symbols().registerClass(this.getValue());
+  }
   compile(compiler) {
-    compiler.getRuntime().registerClass(this.getValue());
-    const namespace = compiler.getRuntime().getNamespace();
-    const className = `${namespace ? namespace + "-" : ""}${this.getValue()}`;
-    compiler.writeLine(`.${className} {`);
-    this.getChildren().forEach((child) => {
-      child.compile(compiler);
-    });
-    compiler.writeLine("}");
   }
 };
 
@@ -634,12 +643,10 @@ var Class = class _Class extends Node {
 var TypeDeclaration = class _TypeDeclaration extends Node {
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "type")) {
-      parser.insert(new _TypeDeclaration());
+      parser.expect("Ident" /* IDENT */);
+      parser.insert(new _TypeDeclaration(parser.getCurrentValue()));
       parser.in();
-      if (parser.expect("Ident" /* IDENT */)) {
-        parser.setAttribute("name", parser.getCurrentValue());
-        parser.advance();
-      }
+      parser.advance();
       parser.expectWithValue("Symbol" /* SYMBOL */, ":");
       parser.advance();
       Type.parse(parser);
@@ -650,7 +657,33 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
     }
     return false;
   }
-  compile() {
+  getTypeSymbols(children) {
+    const options = [];
+    children.forEach((child) => {
+      child.getChildren().forEach((typeChild) => {
+        if (typeChild instanceof Identifier) {
+          options.push({
+            type: "identifier",
+            value: typeChild.getValue()
+          });
+        }
+        if (typeChild instanceof String) {
+          options.push({
+            type: "string",
+            value: typeChild.getValue()
+          });
+        }
+      });
+    });
+    return options;
+  }
+  bind(binder) {
+    binder.symbols().declareType(
+      this.getValue(),
+      this.getTypeSymbols(this.getChildren())
+    );
+  }
+  compile(compiler) {
   }
 };
 
@@ -667,8 +700,10 @@ var Namespace = class _Namespace extends Node {
     }
     return false;
   }
+  bind(binder) {
+    binder.symbols().setNamespace(this.getValue());
+  }
   compile(compiler) {
-    compiler.getRuntime().setNamespace(this.getValue());
   }
 };
 
@@ -700,11 +735,21 @@ var AstNode = class extends Node {
       child.compile(compiler);
     });
   }
+  bind(binder) {
+    this.getChildren().forEach((child) => {
+      child.bind(binder);
+    });
+  }
 };
 
 // src/parser/Parser.ts
 var Parser = class {
   constructor() {
+    /**
+     * The current id
+     * @private
+     */
+    this.currentId = 0;
     /**
      * The current position of the cursor
      * @private
@@ -940,8 +985,17 @@ var Parser = class {
    * @param node
    */
   insert(node) {
+    this.assignNewId(node);
     node.setParent(this.scope);
     this.scope.addChild(node);
+  }
+  /**
+   * @param node
+   * @private
+   */
+  assignNewId(node) {
+    this.currentId++;
+    node.setId(this.currentId);
   }
   /**
    * Set the current scope
@@ -969,46 +1023,33 @@ var Parser = class {
   }
 };
 
-// src/runtime/Runtime.ts
-var Runtime = class {
-  constructor() {
-    /**
-     * @private
-     */
-    this.namespaces = [];
-    /**
-     * @private
-     */
-    this.currentNamespace = null;
-    /**
-     * @private
-     */
-    this.classes = {};
-  }
+// src/compiler/Compiler.ts
+var Compiler = class {
   /**
-   * @param name
+   *
    */
-  setNamespace(name) {
-    if (!this.namespaces.includes(name)) {
-      this.namespaces.push(name);
-    }
-    this.currentNamespace = name;
+  constructor(outputBuffer) {
+    this.buffer = outputBuffer;
   }
   /**
    *
    */
-  getNamespace() {
-    return this.currentNamespace;
+  symbols() {
+    return this.symbolTable;
   }
   /**
    *
-   * @param name
+   * @param string
    */
-  registerClass(name) {
-    if (!this.classes[this.currentNamespace]) {
-      this.classes[this.currentNamespace] = [];
-    }
-    this.classes[this.currentNamespace].push(name);
+  write(string) {
+    this.buffer.writeBody(string);
+  }
+  writeLine(string) {
+    this.buffer.writeBody("\n" + string);
+  }
+  compile(ast) {
+    ast.compile(this);
+    return this.buffer.render();
   }
 };
 
@@ -1075,31 +1116,91 @@ var OutputBuffer = class {
   }
 };
 
-// src/compiler/Compiler.ts
-var Compiler = class {
+// src/context/Binder.ts
+var Binder = class {
+  /**
+   * @param symbolTable
+   */
+  constructor(symbolTable) {
+    this.symbolTable = symbolTable;
+  }
   /**
    *
    */
-  constructor(runtime) {
-    this.runtime = runtime;
-    this.buffer = new OutputBuffer();
+  symbols() {
+    return this.symbolTable;
   }
-  getRuntime() {
-    return this.runtime;
+  /**
+   * @param ast
+   */
+  bind(ast) {
+    ast.bind(this);
+  }
+};
+
+// src/context/SymbolTable.ts
+var SymbolTable = class {
+  constructor() {
+    /**
+     * @private
+     */
+    this.types = {};
+    /**
+     * @private
+     */
+    this.namespaces = [];
+    /**
+     * @private
+     */
+    this.currentNamespace = null;
+    /**
+     * @private
+     */
+    this.classes = {};
+  }
+  /**
+   * @param name
+   */
+  setNamespace(name) {
+    if (!this.namespaces.includes(name)) {
+      this.namespaces.push(name);
+    }
+    this.currentNamespace = name;
   }
   /**
    *
-   * @param string
    */
-  write(string) {
-    this.buffer.writeBody(string);
+  getNamespace() {
+    return this.currentNamespace;
   }
-  writeLine(string) {
-    this.buffer.writeBody("\n" + string);
+  /**
+   *
+   * @param name
+   */
+  registerClass(name) {
+    if (!this.classes[this.currentNamespace]) {
+      this.classes[this.currentNamespace] = [];
+    }
+    this.classes[this.currentNamespace].push(name);
   }
-  compile(ast) {
-    ast.compile(this);
-    return this.buffer.render();
+  /**
+   * @param name
+   * @param symbols
+   */
+  declareType(name, symbols) {
+    if (this.types[name]) {
+      throw new Error(`Runtime error, type ${name} already exists`);
+    }
+    this.types[name] = symbols;
+  }
+  /**
+   * @param name
+   */
+  getType(name) {
+    if (!this.types[name]) {
+      throw new Error(`Runtime error, type ${name} doesn't exist`);
+    }
+    return this.types[name];
   }
 };
 
@@ -1113,7 +1214,10 @@ var Loom = class {
     const tokens = new Lexer().tokenize(code);
     const ast = new Parser().parse(tokens);
     console.log(ast.print());
-    return new Compiler(new Runtime()).compile(ast);
+    const symbolTable = new SymbolTable();
+    new Binder(symbolTable).bind(ast);
+    console.log(symbolTable);
+    return new Compiler(new OutputBuffer()).compile(ast);
   }
 };
 // Annotate the CommonJS export names for ESM import in node:

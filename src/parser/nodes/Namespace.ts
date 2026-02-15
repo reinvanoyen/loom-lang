@@ -2,6 +2,7 @@ import Node from '../Node';
 import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import Compiler from '../../compiler/Compiler';
+import Binder from '../../context/Binder';
 
 export default class Namespace extends Node {
 
@@ -21,8 +22,12 @@ export default class Namespace extends Node {
         return false;
     }
 
-    compile(compiler: Compiler) {
+    bind(binder: Binder) {
         // Set the current namespace
-        compiler.getRuntime().setNamespace(this.getValue());
+        binder.symbols().setNamespace(this.getValue());
+    }
+
+    compile(compiler: Compiler) {
+        //compiler.symbols().setNamespace(this.getValue());
     }
 }

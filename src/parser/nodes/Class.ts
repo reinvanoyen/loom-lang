@@ -3,8 +3,9 @@ import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import VariantDeclaration from './VariantDeclaration';
 import SlotDeclaration from './SlotDeclaration';
-import Compiler from '../../compiler/Compiler';
 import StyleBlock from './StyleBlock';
+import Binder from '../../context/Binder';
+import Compiler from '../../compiler/Compiler';
 
 export default class Class extends Node {
 
@@ -45,13 +46,16 @@ export default class Class extends Node {
         return false;
     }
 
+    bind(binder: Binder) {
+        // Register the class on runtime
+        binder.symbols().registerClass(this.getValue());
+    }
+
     compile(compiler: Compiler) {
 
-        // Register the class on runtime
-        compiler.getRuntime().registerClass(this.getValue());
-
+        /*
         // Get current namespace
-        const namespace = compiler.getRuntime().getNamespace();
+        const namespace = compiler.symbols().getNamespace();
 
         // Build classname
         const className = `${namespace ? namespace+'-' : '' }${this.getValue()}`;
@@ -64,5 +68,6 @@ export default class Class extends Node {
         });
 
         compiler.writeLine('}');
+        */
     }
 }
