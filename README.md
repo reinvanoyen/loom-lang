@@ -1,7 +1,7 @@
 # LOOM
 ## The CSS language for teams making design systems
 
-Confirmed:
+### Confirmed syntax (so far):
 ```
 namespace ui;
 
@@ -33,56 +33,16 @@ class Label {
 	@intent: Intent;
 }
 ```
+### Mental notes / Todos
+* Implement DiagnosticsResult.report() + all() and use it everywhere instead of throwing for user errors.
+* Upgrade Symbol (name, kind, namespace, getters, stable id).
+* Split binder/symbol-table APIs into defineType vs defineInNamespace.
+* Change TypeTable to map symbolId → ResolvedType, and add getBySymbol.
+* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check() (and add 3–5 example files as regression tests).
 
-Ideating:
-```
-class Button {
-
-	@size small | medium | large = medium
-	@tone neutral | danger | success = neutral
-
-	padding: 5px 10px;
-	background-color: #f0f0f0;
-
-	if @size small {
-		padding: 3px;
-	}
-
-	if @size medium {
-		padding: 5px;
-	}
-
-	slot icon {
-		width: 1rem;
-		height: 1rem;
-
-		if @size large {
-			width: 2rem;
-			height: 2rem;
-		}
-	}
-
-	slot text: span {
-		text-transform: uppercase;
-	}
-
-	state focus {
-		border: 1px solid red;
-		icon.opacity: .4;
-	}
-}
-```
-
+### Syntax / grammar ideas
 ```
 class Link extends Button {
-
-	@behavior button | link = button
-
-	if @behavior link {
-		padding: 0;
-		text-decoration: underline;
-
-		state.hover.text-decoration: none;
-	}
+	@behavior 'button' | 'link' = 'button'
 }
 ```
