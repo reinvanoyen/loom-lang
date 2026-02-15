@@ -1,5 +1,5 @@
 # LOOM
-## The CSS language for battle-tested design systems
+## The CSS language for teams making design systems
 
 Confirmed:
 ```
