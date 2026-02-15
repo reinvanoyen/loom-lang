@@ -1,6 +1,6 @@
 import Node from '../parser/Node';
 import OutputBuffer from './OutputBuffer';
-import SymbolTable from '../context/SymbolTable';
+import SymbolTable from '../binder/SymbolTable';
 
 export default class Compiler {
     /**

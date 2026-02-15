@@ -3,8 +3,8 @@ import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import Type from './Type';
 import Compiler from '../../compiler/Compiler';
-import Binder from '../../context/Binder';
-import Symbol from '../../context/Symbol';
+import Binder from '../../binder/Binder';
+import Symbol from '../../binder/Symbol';
 import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class TypeDeclaration extends Node {
@@ -12,19 +12,23 @@ export default class TypeDeclaration extends Node {
     static parse(parser: Parser): boolean {
 
         if (parser.skipWithValue(TokenType.IDENT, 'type')) {
-            parser.expect(TokenType.IDENT);
-            parser.insert(new TypeDeclaration(parser.getCurrentValue()));
-            parser.in();
-            parser.advance();
-            
-            parser.expectWithValue(TokenType.SYMBOL, '=');
-            parser.advance();
+            if (parser.expect(TokenType.IDENT)) {
+                parser.insert(new TypeDeclaration(parser.getCurrentValue()));
+                parser.in();
+                parser.advance();
 
-            Type.parse(parser);
+                if (parser.expectWithValue(TokenType.SYMBOL, '=')) {
+                    parser.advance();
+                }
 
-            parser.out();
-            parser.expectWithValue(TokenType.SYMBOL, ';');
-            parser.advance();
+                Type.parse(parser);
+
+                parser.out();
+
+                if(parser.expectWithValue(TokenType.SYMBOL, ';')) {
+                    parser.advance();
+                }
+            }
 
             return true;
         }

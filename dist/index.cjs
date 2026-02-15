@@ -488,7 +488,7 @@ var Node = class _Node {
   }
   print() {
     const printNode = (node, indentAmount = 0) => {
-      const nodeName = `${node.getId()} \u2013 ${node.getName()}`;
+      const nodeName = `[${node.getId()}] ${node.getName()}`;
       const nodeValue = node.getValue();
       const attributes = node.getAttributes();
       const attributesString = [];
@@ -534,11 +534,12 @@ var Type = class _Type extends Node {
    * @param parser
    */
   static parse(parser) {
-    parser.expectOneOf(["Ident" /* IDENT */, "String" /* STRING */]);
-    parser.insert(new _Type());
-    parser.in();
-    if (this.parseUnionType(parser)) {
-      parser.out();
+    if (parser.expectOneOf(["Ident" /* IDENT */, "String" /* STRING */])) {
+      parser.insert(new _Type());
+      parser.in();
+      if (this.parseUnionType(parser)) {
+        parser.out();
+      }
       return true;
     }
     return false;
@@ -581,23 +582,27 @@ var VariantDeclaration = class _VariantDeclaration extends Node {
    */
   static parse(parser) {
     if (parser.skipWithValue("Symbol" /* SYMBOL */, "@")) {
-      parser.expect("Ident" /* IDENT */);
-      parser.insert(new _VariantDeclaration());
-      parser.in();
-      parser.setAttribute("name", parser.getCurrentValue());
-      parser.advance();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ":");
-      parser.advance();
-      Type.parse(parser);
-      parser.setAttribute("type");
-      if (parser.skipWithValue("Symbol" /* SYMBOL */, "=")) {
-        parser.expect("String" /* STRING */);
-        parser.setAttribute("default", parser.getCurrentValue());
+      if (parser.expect("Ident" /* IDENT */)) {
+        parser.insert(new _VariantDeclaration());
+        parser.in();
+        parser.setAttribute("name", parser.getCurrentValue());
         parser.advance();
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, ":")) {
+          parser.advance();
+        }
+        Type.parse(parser);
+        parser.setAttribute("type");
+        if (parser.skipWithValue("Symbol" /* SYMBOL */, "=")) {
+          if (parser.expect("String" /* STRING */)) {
+            parser.setAttribute("default", parser.getCurrentValue());
+            parser.advance();
+          }
+        }
+        parser.out();
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, ";")) {
+          parser.advance();
+        }
       }
-      parser.out();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ";");
-      parser.advance();
       return true;
     }
     return false;
@@ -615,11 +620,13 @@ var SlotDeclaration = class _SlotDeclaration extends Node {
    */
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "slot")) {
-      parser.expect("Ident" /* IDENT */);
-      parser.insert(new _SlotDeclaration(parser.getCurrentValue()));
-      parser.advance();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ";");
-      parser.advance();
+      if (parser.expect("Ident" /* IDENT */)) {
+        parser.insert(new _SlotDeclaration(parser.getCurrentValue()));
+        parser.advance();
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, ";")) {
+          parser.advance();
+        }
+      }
       return true;
     }
     return false;
@@ -652,7 +659,7 @@ var StyleBlock = class _StyleBlock extends Node {
   }
 };
 
-// src/context/Symbol.ts
+// src/binder/Symbol.ts
 var currentId = 0;
 var Symbol2 = class {
   /**
@@ -683,20 +690,22 @@ var Class = class _Class extends Node {
     if (parser.skipWithValue("Ident" /* IDENT */, "class")) {
       if (parser.expect("Ident" /* IDENT */)) {
         parser.insert(new _Class(parser.getCurrentValue()));
-        parser.traverseUp();
+        parser.in();
         parser.advance();
-      }
-      if (parser.skipWithValue("Ident" /* IDENT */, "extends")) {
-        parser.expect("Ident" /* IDENT */);
-        parser.setAttribute("extends", parser.getCurrentValue());
-        parser.advance();
-      }
-      parser.expectWithValue("Symbol" /* SYMBOL */, "{");
-      parser.advance();
-      while (VariantDeclaration.parse(parser) || SlotDeclaration.parse(parser) || StyleBlock.parse(parser)) ;
-      if (parser.expectWithValue("Symbol" /* SYMBOL */, "}")) {
-        parser.out();
-        parser.advance();
+        if (parser.skipWithValue("Ident" /* IDENT */, "extends")) {
+          if (parser.expect("Ident" /* IDENT */)) {
+            parser.setAttribute("extends", parser.getCurrentValue());
+            parser.advance();
+          }
+        }
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, "{")) {
+          parser.advance();
+        }
+        while (VariantDeclaration.parse(parser) || SlotDeclaration.parse(parser) || StyleBlock.parse(parser)) ;
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, "}")) {
+          parser.out();
+          parser.advance();
+        }
       }
       return true;
     }
@@ -719,16 +728,19 @@ var Class = class _Class extends Node {
 var TypeDeclaration = class _TypeDeclaration extends Node {
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "type")) {
-      parser.expect("Ident" /* IDENT */);
-      parser.insert(new _TypeDeclaration(parser.getCurrentValue()));
-      parser.in();
-      parser.advance();
-      parser.expectWithValue("Symbol" /* SYMBOL */, "=");
-      parser.advance();
-      Type.parse(parser);
-      parser.out();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ";");
-      parser.advance();
+      if (parser.expect("Ident" /* IDENT */)) {
+        parser.insert(new _TypeDeclaration(parser.getCurrentValue()));
+        parser.in();
+        parser.advance();
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, "=")) {
+          parser.advance();
+        }
+        Type.parse(parser);
+        parser.out();
+        if (parser.expectWithValue("Symbol" /* SYMBOL */, ";")) {
+          parser.advance();
+        }
+      }
       return true;
     }
     return false;
@@ -753,11 +765,13 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
 var Namespace = class _Namespace extends Node {
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "namespace")) {
-      parser.expect("Ident" /* IDENT */);
-      parser.insert(new _Namespace(parser.getCurrentValue()));
-      parser.advance();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ";");
-      parser.advance();
+      if (parser.expect("Ident" /* IDENT */)) {
+        parser.insert(new _Namespace(parser.getCurrentValue()));
+        parser.advance();
+      }
+      if (parser.expectWithValue("Symbol" /* SYMBOL */, ";")) {
+        parser.advance();
+      }
       return true;
     }
     return false;
@@ -775,11 +789,14 @@ var Namespace = class _Namespace extends Node {
 var ImportStatement = class _ImportStatement extends Node {
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "import")) {
-      parser.expect("String" /* STRING */);
-      parser.insert(new _ImportStatement(parser.getCurrentValue()));
-      parser.advance();
-      parser.expectWithValue("Symbol" /* SYMBOL */, ";");
-      parser.advance();
+      if (parser.expect("String" /* STRING */)) {
+        parser.expect("String" /* STRING */);
+        parser.insert(new _ImportStatement(parser.getCurrentValue()));
+        parser.advance();
+      }
+      if (parser.expectWithValue("Symbol" /* SYMBOL */, ";")) {
+        parser.advance();
+      }
       return true;
     }
     return false;
@@ -813,7 +830,10 @@ var AstNode = class extends Node {
 
 // src/parser/Parser.ts
 var Parser = class {
-  constructor() {
+  /**
+   * @param reporter
+   */
+  constructor(reporter) {
     /**
      * The current id
      * @private
@@ -834,6 +854,7 @@ var Parser = class {
      * @private
      */
     this.scope = this.ast;
+    this.reporter = reporter;
   }
   /**
    * Parse a TokenStream into an Abstract Syntax Tree (AST)
@@ -978,7 +999,12 @@ var Parser = class {
     if (this.accept(type)) {
       return true;
     }
-    throw new Error("Unexpected token");
+    this.reporter.report({
+      severity: "error",
+      message: `Expected ${type}, got ${this.getCurrentToken().type}`
+    });
+    this.advance();
+    return false;
   }
   /**
    * Expect a token of the given type with give value at this cursor position
@@ -989,19 +1015,12 @@ var Parser = class {
     if (this.acceptWithValue(type, value)) {
       return true;
     }
-    throw new Error(`Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`);
-  }
-  /**
-   * Expect a token of the given type and with given value at the given offset of this cursor position
-   * @param type
-   * @param offset
-   * @param value
-   */
-  expectAtWithValue(type, offset, value) {
-    if (this.acceptAtWithValue(type, offset, value)) {
-      return true;
-    }
-    throw new Error("Unexpected token");
+    this.reporter.report({
+      severity: "error",
+      message: `Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`
+    });
+    this.advance();
+    return false;
   }
   /**
    *
@@ -1011,7 +1030,12 @@ var Parser = class {
     if (this.acceptOneOf(types)) {
       return true;
     }
-    throw new Error("Unexpected token, expected one of: " + types.join(", "));
+    this.reporter.report({
+      severity: "error",
+      message: `Unexpected token, expected one of: ${types.join(", ")}`
+    });
+    this.advance();
+    return false;
   }
   /**
    * Point the scope to the last inserted Node
@@ -1185,16 +1209,18 @@ var OutputBuffer = class {
   }
 };
 
-// src/context/Binder.ts
+// src/binder/Binder.ts
 var Binder = class {
   /**
+   * @param reporter
    * @param symbolTable
    */
-  constructor(symbolTable) {
+  constructor(reporter, symbolTable) {
     /**
      * @private
      */
     this.currentNamespace = "global";
+    this.reporter = reporter;
     this.symbolTable = symbolTable;
   }
   /**
@@ -1215,7 +1241,10 @@ var Binder = class {
    */
   add(name, symbol) {
     if (this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-      throw new Error(`Binding error: ${name} already exists`);
+      this.reporter.report({
+        severity: "error",
+        message: `Binding error: ${name} already exists`
+      });
     }
     this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
   }
@@ -1224,16 +1253,21 @@ var Binder = class {
    */
   get(name) {
     if (!this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-      throw new Error(`Binding error: couldn't get symbol with name ${name}`);
+      this.reporter.report({
+        severity: "error",
+        message: `Binding error: couldn't get symbol with name ${name}`
+      });
     }
     return this.symbolTable.getSymbol(this.currentNamespace, name);
   }
   // GLOBAL TYPE SPACE
   addType(name, symbol) {
     if (this.symbolTable.hasType(name)) {
-      throw new Error(`Binding error: type '${name}' already exists`);
+      this.reporter.report({
+        severity: "error",
+        message: `Binding error: type '${name}' already exists`
+      });
     }
-    symbol.setNamespace("global");
     this.symbolTable.registerType(name, symbol);
   }
   getType(name) {
@@ -1241,7 +1275,7 @@ var Binder = class {
   }
 };
 
-// src/context/SymbolTable.ts
+// src/binder/SymbolTable.ts
 var SymbolTable = class {
   constructor() {
     this.symbols = {};
@@ -1278,7 +1312,8 @@ var TypeResolver = class {
   /**
    * @param typeTable
    */
-  constructor(typeTable) {
+  constructor(reporter, typeTable) {
+    this.reporter = reporter;
     this.typeTable = typeTable;
   }
   /**
@@ -1303,7 +1338,10 @@ var TypeResolver = class {
     if (children.length === 1) {
       return this.resolveTypeNodeChild(children[0]);
     }
-    throw new Error("TypeResolver error, no types in type?");
+    this.reporter.report({
+      severity: "error",
+      message: "TypeResolver error, no types in type?"
+    });
   }
   /**
    * @param typeChild
@@ -1317,10 +1355,13 @@ var TypeResolver = class {
         };
       }
       const symbol = typeChild.getSymbol();
-      if (!symbol) {
-        throw new Error(`Unbound type identifier '${typeChild.getValue()}'`);
+      if (symbol) {
+        return { kind: "ref", symbolId: symbol.getId() };
       }
-      return { kind: "ref", symbolId: symbol.getId() };
+      this.reporter.report({
+        severity: "error",
+        message: `Unbound type identifier '${typeChild.getValue()}'`
+      });
     }
     if (typeChild instanceof StringType) {
       return {
@@ -1328,7 +1369,10 @@ var TypeResolver = class {
         value: typeChild.getValue()
       };
     }
-    throw new Error("Unknown type node");
+    this.reporter.report({
+      severity: "error",
+      message: "Unknown type node"
+    });
   }
   /**
    * @param nodes
@@ -1381,8 +1425,8 @@ var TypeTable = class {
   }
 };
 
-// src/analyzer/DiagnosticsResult.ts
-var DiagnosticsResult = class {
+// src/analyzer/DiagnosticReporter.ts
+var DiagnosticReporter = class {
   constructor() {
     /**
      * @private
@@ -1409,10 +1453,10 @@ var DiagnosticsResult = class {
 // src/analyzer/TypeChecker.ts
 var TypeChecker = class {
   /**
-   * @param diagnostics
+   * @param reporter
    */
-  constructor(diagnostics) {
-    this.diagnostics = diagnostics;
+  constructor(reporter) {
+    this.reporter = reporter;
   }
   /**
    * @param ast
@@ -1436,23 +1480,29 @@ var Loom = class {
    * @param code
    */
   static make(code) {
+    const diagnostics = new DiagnosticReporter();
     const tokens = new Lexer().tokenize(code);
-    const ast = new Parser().parse(tokens);
+    console.log("=== TOKENS ===");
+    console.log(tokens);
+    const ast = new Parser(diagnostics).parse(tokens);
     console.log("=== AST ===");
     console.log(ast.print());
     const symbolTable = new SymbolTable();
-    new Binder(symbolTable).bind(ast);
+    new Binder(diagnostics, symbolTable).bind(ast);
     console.log("=== SYMBOL TABLE ===");
     console.log(symbolTable);
     const typeTable = new TypeTable();
-    const resolver = new TypeResolver(typeTable);
+    const resolver = new TypeResolver(diagnostics, typeTable);
     resolver.resolve(ast);
     console.log("=== TYPE TABLE ===");
     console.log(typeTable);
-    const diagnostics = new DiagnosticsResult();
     new TypeChecker(diagnostics).check(ast, typeTable);
     console.log("=== DIAGNOSTICS ===");
     console.log(diagnostics);
+    if (diagnostics.hasErrors()) {
+      console.error("Not compiling, errors found...");
+      return "";
+    }
     return new Compiler(new OutputBuffer()).compile(ast);
   }
 };

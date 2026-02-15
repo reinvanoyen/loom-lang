@@ -1,9 +1,9 @@
 import { Nullable } from '../types/nullable';
 import { AttributeValue } from '../types/attribute';
 import Parser from './Parser';
-import Symbol from '../context/Symbol';
+import Symbol from '../binder/Symbol';
 import Compiler from '../compiler/Compiler';
-import Binder from '../context/Binder';
+import Binder from '../binder/Binder';
 import TypeResolver from '../analyzer/TypeResolver';
 import TypeChecker from '../analyzer/TypeChecker';
 import TypeTable from '../analyzer/TypeTable';
@@ -208,7 +208,7 @@ export default class Node {
 
         const printNode = (node: Node, indentAmount: number = 0): string => {
 
-            const nodeName = `${node.getId()} – ${node.getName()}`;
+            const nodeName = `[${node.getId()}] ${node.getName()}`;
             const nodeValue = node.getValue();
 
             const attributes = node.getAttributes();

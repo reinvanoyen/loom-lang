@@ -1,7 +1,8 @@
 import Node from '../parser/Node';
 import Symbol from './Symbol';
-import SymbolTable from '../context/SymbolTable';
+import SymbolTable from '../binder/SymbolTable';
 import { Namespace } from '../types/namespace';
+import DiagnosticReporter from '../analyzer/DiagnosticReporter';
 
 export default class Binder {
     /**
@@ -15,9 +16,16 @@ export default class Binder {
     private currentNamespace: Namespace = 'global';
 
     /**
+     * @private
+     */
+    private reporter: DiagnosticReporter;
+
+    /**
+     * @param reporter
      * @param symbolTable
      */
-    constructor(symbolTable: SymbolTable) {
+    constructor(reporter: DiagnosticReporter, symbolTable: SymbolTable) {
+        this.reporter = reporter;
         this.symbolTable = symbolTable;
     }
 
@@ -41,7 +49,10 @@ export default class Binder {
      */
     add(name: string, symbol: Symbol) {
         if (this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-            throw new Error(`Binding error: ${name} already exists`);
+            this.reporter.report({
+                severity: 'error',
+                message: `Binding error: ${name} already exists`
+            });
         }
         this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
     }
@@ -51,7 +62,10 @@ export default class Binder {
      */
     get(name: string) {
         if (!this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-            throw new Error(`Binding error: couldn't get symbol with name ${name}`);
+            this.reporter.report({
+                severity: 'error',
+                message: `Binding error: couldn't get symbol with name ${name}`
+            });
         }
         return this.symbolTable.getSymbol(this.currentNamespace, name);
     }
@@ -59,10 +73,12 @@ export default class Binder {
     // GLOBAL TYPE SPACE
     addType(name: string, symbol: Symbol) {
         if (this.symbolTable.hasType(name)) {
-            throw new Error(`Binding error: type '${name}' already exists`);
+            this.reporter.report({
+                severity: 'error',
+                message: `Binding error: type '${name}' already exists`
+            });
         }
         // optional metadata:
-        symbol.setNamespace('global'); // or store declaredNamespace separately
         this.symbolTable.registerType(name, symbol);
     }
 

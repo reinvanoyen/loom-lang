@@ -4,9 +4,9 @@ import { TokenType } from '../../types/tokenization';
 import VariantDeclaration from './VariantDeclaration';
 import SlotDeclaration from './SlotDeclaration';
 import StyleBlock from './StyleBlock';
-import Binder from '../../context/Binder';
+import Binder from '../../binder/Binder';
 import Compiler from '../../compiler/Compiler';
-import Symbol from '../../context/Symbol';
+import Symbol from '../../binder/Symbol';
 import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class Class extends Node {
@@ -17,29 +17,31 @@ export default class Class extends Node {
 
             if (parser.expect(TokenType.IDENT)) {
                 parser.insert(new Class(parser.getCurrentValue()));
-                parser.traverseUp();
+                parser.in();
                 parser.advance();
-            }
 
-            if (parser.skipWithValue(TokenType.IDENT, 'extends')) {
-                parser.expect(TokenType.IDENT);
-                parser.setAttribute('extends', parser.getCurrentValue());
-                parser.advance();
-            }
+                if (parser.skipWithValue(TokenType.IDENT, 'extends')) {
+                    if (parser.expect(TokenType.IDENT)) {
+                        parser.setAttribute('extends', parser.getCurrentValue());
+                        parser.advance();
+                    }
+                }
 
-            parser.expectWithValue(TokenType.SYMBOL, '{');
-            parser.advance();
+                if (parser.expectWithValue(TokenType.SYMBOL, '{')) {
+                    parser.advance();
+                }
 
-            // Parse class body
-            while(
-                VariantDeclaration.parse(parser) ||
-                SlotDeclaration.parse(parser) ||
-                StyleBlock.parse(parser)
-            );
+                // Parse class body
+                while(
+                    VariantDeclaration.parse(parser) ||
+                    SlotDeclaration.parse(parser) ||
+                    StyleBlock.parse(parser)
+                );
 
-            if (parser.expectWithValue(TokenType.SYMBOL, '}')) {
-                parser.out();
-                parser.advance();
+                if (parser.expectWithValue(TokenType.SYMBOL, '}')) {
+                    parser.out();
+                    parser.advance();
+                }
             }
 
             return true;

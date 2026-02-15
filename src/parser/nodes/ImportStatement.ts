@@ -8,12 +8,16 @@ export default class ImportStatement extends Node {
     static parse(parser: Parser): boolean {
 
         if (parser.skipWithValue(TokenType.IDENT, 'import')) {
-            parser.expect(TokenType.STRING);
-            parser.insert(new ImportStatement(parser.getCurrentValue()));
-            parser.advance();
 
-            parser.expectWithValue(TokenType.SYMBOL, ';');
-            parser.advance();
+            if (parser.expect(TokenType.STRING)) {
+                parser.expect(TokenType.STRING);
+                parser.insert(new ImportStatement(parser.getCurrentValue()));
+                parser.advance();
+            }
+
+            if (parser.expectWithValue(TokenType.SYMBOL, ';')) {
+                parser.advance();
+            }
 
             return true;
         }

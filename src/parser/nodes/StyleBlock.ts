@@ -14,6 +14,7 @@ export default class StyleBlock extends Node {
             parser.setAttribute('contents', parser.getCurrentValue());
             parser.advance();
             parser.out();
+
             return true;
         }
 

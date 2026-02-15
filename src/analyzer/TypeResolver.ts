@@ -4,7 +4,8 @@ import Type from '../parser/nodes/Type';
 import { ResolvedType } from '../types/analyzer';
 import IdentifierType from '../parser/nodes/IdentifierType';
 import StringType from '../parser/nodes/StringType';
-import Symbol from '../context/Symbol';
+import Symbol from '../binder/Symbol';
+import DiagnosticReporter from './DiagnosticReporter';
 
 type TypeChildNode = IdentifierType | StringType;
 
@@ -15,9 +16,15 @@ export default class TypeResolver {
     private typeTable: TypeTable;
 
     /**
+     * @private
+     */
+    private reporter: DiagnosticReporter;
+    
+    /**
      * @param typeTable
      */
-    constructor(typeTable: TypeTable) {
+    constructor(reporter: DiagnosticReporter, typeTable: TypeTable) {
+        this.reporter = reporter;
         this.typeTable = typeTable;
     }
 
@@ -48,7 +55,10 @@ export default class TypeResolver {
             return this.resolveTypeNodeChild(children[0] as TypeChildNode);
         }
 
-        throw new Error('TypeResolver error, no types in type?');
+        this.reporter.report({
+            severity: 'error',
+            message: 'TypeResolver error, no types in type?',
+        });
     }
 
     /**
@@ -67,11 +77,14 @@ export default class TypeResolver {
 
             const symbol = typeChild.getSymbol();
 
-            if (!symbol) {
-                throw new Error(`Unbound type identifier '${typeChild.getValue()}'`);
+            if (symbol) {
+                return { kind: 'ref', symbolId: symbol.getId() };
             }
 
-            return { kind: 'ref', symbolId: symbol.getId() };
+            this.reporter.report({
+                severity: 'error',
+                message: `Unbound type identifier '${typeChild.getValue()}'`,
+            });
         }
 
         if (typeChild instanceof StringType) {
@@ -81,7 +94,10 @@ export default class TypeResolver {
             };
         }
 
-        throw new Error('Unknown type node');
+        this.reporter.report({
+            severity: 'error',
+            message: 'Unknown type node',
+        });
     }
 
     /**

@@ -10,12 +10,14 @@ export default class SlotDeclaration extends Node {
     static parse(parser: Parser): boolean {
 
         if (parser.skipWithValue(TokenType.IDENT,'slot')) {
-            parser.expect(TokenType.IDENT);
-            parser.insert(new SlotDeclaration(parser.getCurrentValue()));
-            parser.advance();
+            if (parser.expect(TokenType.IDENT)) {
+                parser.insert(new SlotDeclaration(parser.getCurrentValue()));
+                parser.advance();
 
-            parser.expectWithValue(TokenType.SYMBOL, ';');
-            parser.advance();
+                if (parser.expectWithValue(TokenType.SYMBOL, ';')) {
+                    parser.advance();
+                }
+            }
 
             return true;
         }

@@ -3,7 +3,7 @@ import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
 import IdentifierType from './IdentifierType';
 import StringType from './StringType';
-import Binder from '../../context/Binder';
+import Binder from '../../binder/Binder';
 
 export default class Type extends Node {
     /**
@@ -11,13 +11,15 @@ export default class Type extends Node {
      */
     static parse(parser: Parser): boolean {
 
-        parser.expectOneOf([TokenType.IDENT, TokenType.STRING]);
+        if (parser.expectOneOf([TokenType.IDENT, TokenType.STRING])) {
 
-        parser.insert(new Type());
-        parser.in();
+            parser.insert(new Type());
+            parser.in();
 
-        if (this.parseUnionType(parser)) {
-            parser.out();
+            if (this.parseUnionType(parser)) {
+                parser.out();
+            }
+
             return true;
         }
 

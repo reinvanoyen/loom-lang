@@ -1,15 +1,13 @@
+namespace ui;
 
 import 'Button.loom';
 import 'types.loom';
-
-namespace ns;
 
 type Size = 'small' | 'medium' | 'small';
 type ExtraSize = Size | 'huge';
 type Intent = 'danger';
 type Word = string;
-
-namespace ui;
+type Word = string;
 
 class Button {
 

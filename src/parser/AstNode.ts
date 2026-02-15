@@ -5,7 +5,7 @@ import TypeDeclaration from './nodes/TypeDeclaration';
 import Namespace from './nodes/Namespace';
 import Compiler from '../compiler/Compiler';
 import ImportStatement from './nodes/ImportStatement';
-import Binder from '../context/Binder';
+import Binder from '../binder/Binder';
 import TypeResolver from '../analyzer/TypeResolver';
 
 export default class AstNode extends Node {

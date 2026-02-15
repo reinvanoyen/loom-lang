@@ -1,5 +1,5 @@
 import Node from '../Node';
-import Binder from '../../context/Binder';
+import Binder from '../../binder/Binder';
 
 export default class IdentifierType extends Node {
 

@@ -2,6 +2,7 @@ import { Token, TokenStream, TokenType } from '../types/tokenization';
 import AstNode from './AstNode';
 import Node from './Node';
 import { Nullable } from '../types/nullable';
+import DiagnosticReporter from '../analyzer/DiagnosticReporter';
 
 export default class Parser {
 
@@ -34,6 +35,18 @@ export default class Parser {
      * @private
      */
     private scope: Node = this.ast;
+
+    /**
+     * @private
+     */
+    private reporter: DiagnosticReporter;
+
+    /**
+     * @param reporter
+     */
+    constructor(reporter: DiagnosticReporter) {
+        this.reporter = reporter;
+    }
 
     /**
      * Parse a TokenStream into an Abstract Syntax Tree (AST)
@@ -206,9 +219,13 @@ export default class Parser {
         if (this.accept(type)) {
             return true;
         }
-        throw new Error('Unexpected token');
-        // todo implement UnexpectedToken error
-        //throw new UnexpectedToken(type, this.getCurrentToken());
+
+        this.reporter.report({
+            severity: 'error',
+            message: `Expected ${type}, got ${this.getCurrentToken().type}`
+        });
+        this.advance();
+        return false;
     }
 
     /**
@@ -220,24 +237,13 @@ export default class Parser {
         if (this.acceptWithValue(type, value)) {
             return true;
         }
-        throw new Error(`Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`);
-        // todo implement UnexpectedToken error
-        //throw new UnexpectedToken(type, this.getCurrentToken());
-    }
 
-    /**
-     * Expect a token of the given type and with given value at the given offset of this cursor position
-     * @param type
-     * @param offset
-     * @param value
-     */
-    public expectAtWithValue(type: TokenType, offset: number, value: string): boolean {
-        if (this.acceptAtWithValue(type, offset, value)) {
-            return true;
-        }
-        throw new Error('Unexpected token');
-        // todo implement UnexpectedToken error
-        //throw new UnexpectedToken(type, this.getCurrentToken());
+        this.reporter.report({
+            severity: 'error',
+            message: `Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`
+        });
+        this.advance();
+        return false;
     }
 
     /**
@@ -248,9 +254,13 @@ export default class Parser {
         if (this.acceptOneOf(types)) {
             return true;
         }
-        throw new Error('Unexpected token, expected one of: '+types.join(', '));
-        // todo implement UnexpectedToken error
-        //throw new UnexpectedToken(type, this.getCurrentToken());
+
+        this.reporter.report({
+            severity: 'error',
+            message: `Unexpected token, expected one of: ${types.join(', ')}`
+        });
+        this.advance();
+        return false;
     }
 
     /**

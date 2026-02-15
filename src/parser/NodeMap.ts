@@ -1,4 +1,4 @@
-import Node from '../parser/Node';
+import Node from './Node';
 
 export default class NodeMap {
     /**

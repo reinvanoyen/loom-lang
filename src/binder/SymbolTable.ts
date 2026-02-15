@@ -1,5 +1,5 @@
 import { Namespace } from '../types/namespace';
-import Symbol from '../context/Symbol';
+import Symbol from '../binder/Symbol';
 
 export default class SymbolTable {
     private symbols: Record<Namespace, Record<string, Symbol>> = {};

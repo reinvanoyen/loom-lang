@@ -1,5 +1,5 @@
 import AstNode from '../parser/AstNode';
-import DiagnosticsResult from './DiagnosticsResult';
+import DiagnosticReporter from './DiagnosticReporter';
 import TypeTable from './TypeTable';
 import { ResolvedType } from '../types/analyzer';
 
@@ -8,13 +8,13 @@ export default class TypeChecker {
     /**
      * @private
      */
-    private diagnostics: DiagnosticsResult;
+    private reporter: DiagnosticReporter;
 
     /**
-     * @param diagnostics
+     * @param reporter
      */
-    constructor(diagnostics: DiagnosticsResult) {
-        this.diagnostics = diagnostics;
+    constructor(reporter: DiagnosticReporter) {
+        this.reporter = reporter;
     }
 
     /**

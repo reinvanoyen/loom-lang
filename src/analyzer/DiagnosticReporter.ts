@@ -1,11 +1,11 @@
 type DiagnosticMessage = {
     severity: 'info' | 'warning' | 'error';
     message: string;
-    nodeId: number;
+    nodeId?: number;
     // todo - add line/col later (position)
 };
 
-export default class DiagnosticsResult {
+export default class DiagnosticReporter {
     /**
      * @private
      */
