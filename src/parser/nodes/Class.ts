@@ -49,7 +49,7 @@ export default class Class extends Node {
     }
 
     bind(binder: Binder) {
-        this.setSymbol(new Symbol('type', this.getId()));
+        this.setSymbol(new Symbol('class', this.getId()));
         binder.add(this.getValue(), this.getSymbol());
     }
 
