@@ -30,7 +30,7 @@ export default class Loom {
 
         // Resolve types
         const typeTable = new TypeTable();
-        const resolver = new TypeResolver(typeTable, symbolTable);
+        const resolver = new TypeResolver(typeTable);
         resolver.resolve(ast);
 
         console.log('=== TYPE TABLE ===');

@@ -1,7 +1,5 @@
 import AstNode from '../parser/AstNode';
-import { Namespace } from '../types/namespace';
 import TypeTable from './TypeTable';
-import SymbolTable from '../context/SymbolTable';
 import Type from '../parser/nodes/Type';
 import { ResolvedType } from '../types/analyzer';
 import IdentifierType from '../parser/nodes/IdentifierType';
@@ -17,21 +15,10 @@ export default class TypeResolver {
     private typeTable: TypeTable;
 
     /**
-     * @private
-     */
-    private symbolTable: SymbolTable;
-
-    /**
-     * @private
-     */
-    private currentNamespace: Namespace = 'global';
-
-    /**
      * @param typeTable
      */
-    constructor(typeTable: TypeTable, symbolTable: SymbolTable) {
+    constructor(typeTable: TypeTable) {
         this.typeTable = typeTable;
-        this.symbolTable = symbolTable;
     }
 
     /**

@@ -1278,13 +1278,8 @@ var TypeResolver = class {
   /**
    * @param typeTable
    */
-  constructor(typeTable, symbolTable) {
-    /**
-     * @private
-     */
-    this.currentNamespace = "global";
+  constructor(typeTable) {
     this.typeTable = typeTable;
-    this.symbolTable = symbolTable;
   }
   /**
    *
@@ -1450,7 +1445,7 @@ var Loom = class {
     console.log("=== SYMBOL TABLE ===");
     console.log(symbolTable);
     const typeTable = new TypeTable();
-    const resolver = new TypeResolver(typeTable, symbolTable);
+    const resolver = new TypeResolver(typeTable);
     resolver.resolve(ast);
     console.log("=== TYPE TABLE ===");
     console.log(typeTable);
