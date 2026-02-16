@@ -1,11 +1,10 @@
-# Loom
-## Contractual CSS for teams making robust design systems
 <p>
-  <a href="https://github.com/elos-lang/elos">
-    <img width="300" src="https://raw.githubusercontent.com/reinvanoyen/loom-lang/main/logo.png">
+  <a href="https://github.com/reinvanoyen/loom-lang">
+    <img width="200" src="https://raw.githubusercontent.com/reinvanoyen/loom-lang/main/logo.png">
   </a>
 </p>
-
+# Loom
+## Contractual CSS for teams making robust design systems
 https://dev.to/reinvanoyen/experimenting-with-the-idea-of-a-typescript-for-css-3i8l
 
 ### Confirmed syntax (so far):
