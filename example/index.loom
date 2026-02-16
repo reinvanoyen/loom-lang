@@ -1,0 +1,35 @@
+namespace ui;
+
+import 'Button.loom';
+import 'types.loom';
+
+type Size = 'small' | 'medium' | 'small';
+type ExtraSize = Size | 'huge';
+type Intent = 'danger';
+type Word = string;
+
+class Button {
+
+	@size: Size = 'medium';
+	@intent: Intent | 'flashy' = 'flashy';
+
+	slot icon;
+	slot link;
+
+	{%
+		position: relative;
+		width: 100px;
+		height: 90px;
+		animation: heartbeat 1s infinite;
+	%}
+}
+
+class Link extends Button {
+	{%
+		text-decoration: underline;
+	%}
+}
+
+class Label {{%
+	color: red;
+%}}

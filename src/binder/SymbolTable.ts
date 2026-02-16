@@ -1,0 +1,46 @@
+import { Namespace } from '../types/namespace';
+import Symbol from '../binder/Symbol';
+import chalk from 'chalk';
+
+export default class SymbolTable {
+    private symbols: Record<Namespace, Record<string, Symbol>> = {};
+    private types: Record<string, Symbol> = {}; // global type space
+
+    // --- types (global) ---
+    public registerType(name: string, symbol: Symbol) {
+        this.types[name] = symbol;
+    }
+
+    public hasType(name: string) {
+        return typeof this.types[name] !== 'undefined';
+    }
+
+    public getType(name: string): Symbol | null {
+        return this.types[name] ?? null;
+    }
+
+    // --- values/classes (namespaced) ---
+    public registerSymbol(ns: Namespace, name: string, symbol: Symbol) {
+        if (!this.symbols[ns]) this.symbols[ns] = {};
+        this.symbols[ns][name] = symbol;
+    }
+
+    public hasSymbol(ns: Namespace, name: string) {
+        return !!this.symbols[ns] && typeof this.symbols[ns][name] !== 'undefined';
+    }
+
+    public getSymbol(ns: Namespace, name: string): Symbol | null {
+        return this.symbols[ns]?.[name] ?? null;
+    }
+
+    public print() {
+        const namespaces = Object.keys(this.symbols);
+        namespaces.forEach(ns => {
+            console.log(chalk.bgCyan(`NS: ${ns}`));
+            console.table(this.symbols[ns]);
+        });
+
+        console.log(chalk.bgCyan('GLOBAL TYPES'));
+        console.table(this.types);
+    }
+}

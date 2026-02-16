@@ -1,0 +1,88 @@
+import Node from '../parser/Node';
+import Symbol from './Symbol';
+import SymbolTable from '../binder/SymbolTable';
+import { Namespace } from '../types/namespace';
+import DiagnosticReporter from '../analyzer/DiagnosticReporter';
+
+export default class Binder {
+    /**
+     * @private
+     */
+    private symbolTable: SymbolTable;
+
+    /**
+     * @private
+     */
+    private currentNamespace: Namespace = 'global';
+
+    /**
+     * @private
+     */
+    private reporter: DiagnosticReporter;
+
+    /**
+     * @param reporter
+     * @param symbolTable
+     */
+    constructor(reporter: DiagnosticReporter, symbolTable: SymbolTable) {
+        this.reporter = reporter;
+        this.symbolTable = symbolTable;
+    }
+
+    /**
+     * @param ast
+     */
+    bind(ast: Node) {
+        ast.bind(this);
+    }
+
+    /**
+     * @param ns
+     */
+    namespace(ns: Namespace) {
+        this.currentNamespace = ns;
+    }
+
+    /**
+     * @param name
+     * @param symbol
+     */
+    add(name: string, symbol: Symbol) {
+        if (this.symbolTable.hasSymbol(this.currentNamespace, name)) {
+            this.reporter.report({
+                severity: 'error',
+                message: `Binding error: ${name} already exists`
+            });
+        }
+        this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
+    }
+
+    /**
+     * @param name
+     */
+    get(name: string) {
+        if (!this.symbolTable.hasSymbol(this.currentNamespace, name)) {
+            this.reporter.report({
+                severity: 'error',
+                message: `Binding error: couldn't get symbol with name ${name}`
+            });
+        }
+        return this.symbolTable.getSymbol(this.currentNamespace, name);
+    }
+
+    // GLOBAL TYPE SPACE
+    addType(name: string, symbol: Symbol) {
+        if (this.symbolTable.hasType(name)) {
+            this.reporter.report({
+                severity: 'error',
+                message: `Binding error: type '${name}' already exists`
+            });
+        }
+        // optional metadata:
+        this.symbolTable.registerType(name, symbol);
+    }
+
+    getType(name: string) {
+        return this.symbolTable.getType(name);
+    }
+}
