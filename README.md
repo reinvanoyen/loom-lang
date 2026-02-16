@@ -2,7 +2,7 @@
 ## Contractual CSS for teams making robust design systems
 <p>
   <a href="https://github.com/elos-lang/elos">
-    <img width="150" src="https://raw.githubusercontent.com/reinvanoyen/loom-lang/main/logo.png">
+    <img width="300" src="https://raw.githubusercontent.com/reinvanoyen/loom-lang/main/logo.png">
   </a>
 </p>
 
