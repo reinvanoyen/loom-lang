@@ -7,6 +7,10 @@ import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class Namespace extends Node {
 
+    getName(): string {
+        return 'NS';
+    }
+
     static parse(parser: Parser): boolean {
         if (parser.skipWithValue(TokenType.IDENT, 'namespace')) {
 
@@ -26,7 +30,14 @@ export default class Namespace extends Node {
     }
 
     bind(binder: Binder) {
-        binder.namespace(this.getValue());
+
+        const value = this.getValue();
+
+        if (! value) {
+            return;
+        }
+
+        binder.namespace(value);
     }
 
     resolve(typeResolver: TypeResolver) {

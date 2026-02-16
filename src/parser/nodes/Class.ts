@@ -11,6 +11,10 @@ import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class Class extends Node {
 
+    getName(): string {
+        return 'CLASS';
+    }
+
     static parse(parser: Parser): boolean {
 
         if (parser.skipWithValue(TokenType.IDENT, 'class')) {
@@ -51,8 +55,14 @@ export default class Class extends Node {
     }
 
     bind(binder: Binder) {
-        this.setSymbol(new Symbol('class', this.getId()));
-        binder.add(this.getValue(), this.getSymbol());
+        const id = this.getId();
+        const value = this.getValue();
+
+        if (id && value) {
+            const symbol = new Symbol('class', id);
+            this.setSymbol(symbol);
+            binder.add(value, symbol);
+        }
     }
 
     resolve(typeResolver: TypeResolver) {

@@ -7,9 +7,9 @@ import Binder from '../binder/Binder';
 import TypeResolver from '../analyzer/TypeResolver';
 import TypeChecker from '../analyzer/TypeChecker';
 import TypeTable from '../analyzer/TypeTable';
+import chalk from 'chalk';
 
 export default class Node {
-
     /**
      * @protected
      */
@@ -24,7 +24,7 @@ export default class Node {
      *
      * @protected
      */
-    protected value: string;
+    protected value: Nullable<string> = null;
 
     /**
      *
@@ -48,7 +48,7 @@ export default class Node {
      *
      * @param value
      */
-    constructor(value: string = '') {
+    constructor(value: Nullable<string> = null) {
         this.value = value;
     }
 
@@ -98,14 +98,14 @@ export default class Node {
     /**
      *
      */
-    getParent(): Node {
+    getParent(): Nullable<Node> {
         return this.parent;
     }
 
     /**
      *
      */
-    getValue(): string {
+    getValue(): Nullable<string> {
         return this.value;
     }
 
@@ -208,7 +208,8 @@ export default class Node {
 
         const printNode = (node: Node, indentAmount: number = 0): string => {
 
-            const nodeName = `[${node.getId()}] ${node.getName()}`;
+            const nodeId = node.getId();
+            const nodeName = `${chalk.yellow(node.getName())}`;
             const nodeValue = node.getValue();
 
             const attributes = node.getAttributes();
@@ -217,13 +218,13 @@ export default class Node {
                 let attrValue = attributes[attribute];
                 if (attrValue instanceof Node) {
                     const attrNodeValue = attrValue.getValue();
-                    attrValue = `${attrValue.getName()}${attrNodeValue ? `(${attrNodeValue})` : ''}`;
+                    attrValue = `${attrValue.getName()}${attrNodeValue ? `(${chalk.red(attrNodeValue)})` : ''}`;
                 }
-                attributesString.push(`${attribute}=${attrValue}`);
+                attributesString.push(`${chalk.magenta(attribute)}=${chalk.cyan(attrValue)}`);
             }
 
             const tabs = indentAmount > 0 ? '   '.repeat(indentAmount - 1) + '└──' : '';
-            const output = [`${tabs}${nodeName}${nodeValue ? `(${nodeValue})` : ''} ${attributesString.join(' ')}`];
+            const output = [`${chalk.green(nodeId ? nodeId : '-')} ${chalk.grey(tabs)}${nodeName}${nodeValue ? `(${chalk.red(nodeValue)})` : ''} ${attributesString.join(' ')}`];
 
             node.getChildren().forEach(childNode => {
                 output.push(printNode(childNode, indentAmount + 1));

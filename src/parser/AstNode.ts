@@ -10,16 +10,23 @@ import TypeResolver from '../analyzer/TypeResolver';
 
 export default class AstNode extends Node {
 
+    getName(): string {
+        return 'AST';
+    }
+
     static parse(parser: Parser): boolean {
-        
+        let parsed = false;
+
         while(
             Namespace.parse(parser) ||
             ImportStatement.parse(parser) ||
             TypeDeclaration.parse(parser) ||
             Class.parse(parser)
-        );
+        ) {
+            parsed = true;
+        }
 
-        return true;
+        return parsed;
     }
 
     compile(compiler: Compiler) {

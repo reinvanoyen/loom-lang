@@ -1,5 +1,6 @@
 import { Namespace } from '../types/namespace';
 import Symbol from '../binder/Symbol';
+import chalk from 'chalk';
 
 export default class SymbolTable {
     private symbols: Record<Namespace, Record<string, Symbol>> = {};
@@ -30,5 +31,16 @@ export default class SymbolTable {
 
     public getSymbol(ns: Namespace, name: string): Symbol | null {
         return this.symbols[ns]?.[name] ?? null;
+    }
+
+    public print() {
+        const namespaces = Object.keys(this.symbols);
+        namespaces.forEach(ns => {
+            console.log(chalk.bgCyan(`NS: ${ns}`));
+            console.table(this.symbols[ns]);
+        });
+
+        console.log(chalk.bgCyan('GLOBAL TYPES'));
+        console.table(this.types);
     }
 }

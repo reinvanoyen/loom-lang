@@ -14,63 +14,66 @@ var grammar_default = {
 
 // src/tokenization/Lexer.ts
 var Lexer = class {
-  constructor() {
-    /**
-     * The current mode of lexing
-     * @private
-     */
-    this.mode = 0 /* ALL */;
-    /**
-     * The current position of the cursor
-     * @private
-     */
-    this.cursor = 0;
-    /**
-     * The position of the cursor at the start of the mode
-     * @private
-     */
-    this.modeStartCursor = 0;
-    /**
-     * The current line, starting at line 1
-     * @private
-     */
-    this.line = 1;
-    /**
-     * The current position on the current line, starting at 1
-     * @private
-     */
-    this.column = 1;
-    /**
-     * The current character
-     * @private
-     */
-    this.character = "";
-    /**
-     * The next character, handy for simple look-ahead
-     * @private
-     */
-    this.nextCharacter = "";
-    /**
-     * The index of the last character, also the amount of characters
-     * @private
-     */
-    this.end = 0;
-    /**
-     * The current token stream being created
-     * @private
-     */
-    this.tokens = [];
-    /**
-     * The current value being lexed
-     * @private
-     */
-    this.value = "";
-    /**
-     * The current delimiter (e.g. string delimiter or boundary)
-     * @private
-     */
-    this.delimiter = "";
-  }
+  /**
+   * The source code to tokenize
+   * @private
+   */
+  source = "";
+  /**
+   * The current mode of lexing
+   * @private
+   */
+  mode = 0 /* ALL */;
+  /**
+   * The current position of the cursor
+   * @private
+   */
+  cursor = 0;
+  /**
+   * The position of the cursor at the start of the mode
+   * @private
+   */
+  modeStartCursor = 0;
+  /**
+   * The current line, starting at line 1
+   * @private
+   */
+  line = 1;
+  /**
+   * The current position on the current line, starting at 1
+   * @private
+   */
+  column = 1;
+  /**
+   * The current character
+   * @private
+   */
+  character = "";
+  /**
+   * The next character, handy for simple look-ahead
+   * @private
+   */
+  nextCharacter = "";
+  /**
+   * The index of the last character, also the amount of characters
+   * @private
+   */
+  end = 0;
+  /**
+   * The current token stream being created
+   * @private
+   */
+  tokens = [];
+  /**
+   * The current value being lexed
+   * @private
+   */
+  value = "";
+  /**
+   * The current delimiter (e.g. string delimiter or boundary)
+   * @private
+   */
+  delimiter = "";
   /**
    * Transforms code into a TokenStream
    * @param text
@@ -80,7 +83,7 @@ var Lexer = class {
     this.end = this.source.length;
     while (this.cursor < this.end) {
       this.character = this.source[this.cursor];
-      this.nextCharacter = this.source[this.cursor + 1] || null;
+      this.nextCharacter = this.source[this.cursor + 1] || "";
       if (this.mode === 0 /* ALL */) {
         this.mode = this.determineMode();
         this.modeStartCursor = this.cursor;
@@ -160,7 +163,7 @@ var Lexer = class {
     if (escSequence) {
       this.cursor += 1;
       this.character = this.source[this.cursor];
-      this.nextCharacter = this.source[this.cursor + 1] || null;
+      this.nextCharacter = this.source[this.cursor + 1] || "";
     }
     if (this.character !== this.delimiter || escSequence) {
       this.value += this.character;
@@ -300,35 +303,41 @@ var Lexer = class {
 };
 
 // src/parser/Node.ts
+import chalk from "chalk";
 var Node = class _Node {
+  /**
+   * @protected
+   */
+  id = null;
+  /**
+   * @private
+   */
+  symbol = null;
+  /**
+   *
+   * @protected
+   */
+  value = null;
+  /**
+   *
+   * @protected
+   */
+  parent = null;
+  /**
+   *
+   * @protected
+   */
+  children = [];
+  /**
+   *
+   * @protected
+   */
+  attributes = {};
   /**
    *
    * @param value
    */
-  constructor(value = "") {
-    /**
-     * @protected
-     */
-    this.id = null;
-    /**
-     * @private
-     */
-    this.symbol = null;
-    /**
-     *
-     * @protected
-     */
-    this.parent = null;
-    /**
-     *
-     * @protected
-     */
-    this.children = [];
-    /**
-     *
-     * @protected
-     */
-    this.attributes = {};
+  constructor(value = null) {
     this.value = value;
   }
   /**
@@ -463,7 +472,8 @@ var Node = class _Node {
   }
   print() {
     const printNode = (node, indentAmount = 0) => {
-      const nodeName = `[${node.getId()}] ${node.getName()}`;
+      const nodeId = node.getId();
+      const nodeName = `${chalk.yellow(node.getName())}`;
       const nodeValue = node.getValue();
       const attributes = node.getAttributes();
       const attributesString = [];
@@ -471,12 +481,12 @@ var Node = class _Node {
         let attrValue = attributes[attribute];
         if (attrValue instanceof _Node) {
           const attrNodeValue = attrValue.getValue();
-          attrValue = `${attrValue.getName()}${attrNodeValue ? `(${attrNodeValue})` : ""}`;
+          attrValue = `${attrValue.getName()}${attrNodeValue ? `(${chalk.red(attrNodeValue)})` : ""}`;
         }
-        attributesString.push(`${attribute}=${attrValue}`);
+        attributesString.push(`${chalk.magenta(attribute)}=${chalk.cyan(attrValue)}`);
       }
       const tabs = indentAmount > 0 ? "   ".repeat(indentAmount - 1) + "\u2514\u2500\u2500" : "";
-      const output = [`${tabs}${nodeName}${nodeValue ? `(${nodeValue})` : ""} ${attributesString.join(" ")}`];
+      const output = [`${chalk.green(nodeId ? nodeId : "-")} ${chalk.grey(tabs)}${nodeName}${nodeValue ? `(${chalk.red(nodeValue)})` : ""} ${attributesString.join(" ")}`];
       node.getChildren().forEach((childNode) => {
         output.push(printNode(childNode, indentAmount + 1));
       });
@@ -488,10 +498,22 @@ var Node = class _Node {
 
 // src/parser/nodes/IdentifierType.ts
 var IdentifierType = class extends Node {
+  getName() {
+    return "T_IDENT";
+  }
   bind(binder) {
-    if (this.getValue() !== "string") {
-      this.setSymbol(binder.getType(this.getValue()));
+    const value = this.getValue();
+    if (!value) {
+      return;
     }
+    if (value === "string") {
+      return;
+    }
+    const symbol = binder.getType(value);
+    if (!symbol) {
+      return;
+    }
+    this.setSymbol(symbol);
   }
   compile() {
   }
@@ -499,12 +521,18 @@ var IdentifierType = class extends Node {
 
 // src/parser/nodes/StringType.ts
 var StringType = class extends Node {
+  getName() {
+    return "T_STRING";
+  }
   compile() {
   }
 };
 
 // src/parser/nodes/Type.ts
 var Type = class _Type extends Node {
+  getName() {
+    return "TYPE";
+  }
   /**
    * @param parser
    */
@@ -552,15 +580,17 @@ var Type = class _Type extends Node {
 
 // src/parser/nodes/VariantDeclaration.ts
 var VariantDeclaration = class _VariantDeclaration extends Node {
+  getName() {
+    return "VARIANT_DECL";
+  }
   /**
    * @param parser
    */
   static parse(parser) {
     if (parser.skipWithValue("Symbol" /* SYMBOL */, "@")) {
       if (parser.expect("Ident" /* IDENT */)) {
-        parser.insert(new _VariantDeclaration());
+        parser.insert(new _VariantDeclaration(parser.getCurrentValue()));
         parser.in();
-        parser.setAttribute("name", parser.getCurrentValue());
         parser.advance();
         if (parser.expectWithValue("Symbol" /* SYMBOL */, ":")) {
           parser.advance();
@@ -590,6 +620,9 @@ var VariantDeclaration = class _VariantDeclaration extends Node {
 
 // src/parser/nodes/SlotDeclaration.ts
 var SlotDeclaration = class _SlotDeclaration extends Node {
+  getName() {
+    return "SLOT_DECL";
+  }
   /**
    * @param parser
    */
@@ -612,6 +645,9 @@ var SlotDeclaration = class _SlotDeclaration extends Node {
 
 // src/parser/nodes/StyleBlock.ts
 var StyleBlock = class _StyleBlock extends Node {
+  getName() {
+    return "STYLE";
+  }
   /**
    * @param parser
    */
@@ -638,6 +674,22 @@ var StyleBlock = class _StyleBlock extends Node {
 var currentId = 0;
 var Symbol = class {
   /**
+   * @private
+   */
+  id;
+  /**
+   * @private
+   */
+  type;
+  /**
+   * @private
+   */
+  nodeId;
+  /**
+   * @private
+   */
+  namespace = null;
+  /**
    * @param type
    * @param nodeId
    */
@@ -661,6 +713,9 @@ var Symbol = class {
 
 // src/parser/nodes/Class.ts
 var Class = class _Class extends Node {
+  getName() {
+    return "CLASS";
+  }
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "class")) {
       if (parser.expect("Ident" /* IDENT */)) {
@@ -687,8 +742,13 @@ var Class = class _Class extends Node {
     return false;
   }
   bind(binder) {
-    this.setSymbol(new Symbol("class", this.getId()));
-    binder.add(this.getValue(), this.getSymbol());
+    const id = this.getId();
+    const value = this.getValue();
+    if (id && value) {
+      const symbol = new Symbol("class", id);
+      this.setSymbol(symbol);
+      binder.add(value, symbol);
+    }
   }
   resolve(typeResolver) {
     this.getChildren().forEach((child) => {
@@ -701,6 +761,9 @@ var Class = class _Class extends Node {
 
 // src/parser/nodes/TypeDeclaration.ts
 var TypeDeclaration = class _TypeDeclaration extends Node {
+  getName() {
+    return "TYPE_DECL";
+  }
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "type")) {
       if (parser.expect("Ident" /* IDENT */)) {
@@ -721,16 +784,29 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
     return false;
   }
   bind(binder) {
-    this.setSymbol(new Symbol("type", this.getId()));
-    binder.addType(this.getValue(), this.getSymbol());
+    const id = this.getId();
+    const value = this.getValue();
+    if (id && value) {
+      const symbol = new Symbol("type", id);
+      this.setSymbol(symbol);
+      binder.addType(value, symbol);
+    }
     this.getChildren().forEach((child) => child.bind(binder));
   }
   resolve(typeResolver) {
     const rhs = this.getChildren().find((child) => child instanceof Type);
     if (!rhs) {
-      throw new Error(`TypeResolver error: missing RHS type for '${this.getValue()}'`);
+      return;
     }
-    typeResolver.defineType(this.getSymbol(), typeResolver.resolveType(rhs));
+    const symbol = this.getSymbol();
+    if (!symbol) {
+      return;
+    }
+    const resolvedType = typeResolver.resolveType(rhs);
+    if (!resolvedType) {
+      return;
+    }
+    typeResolver.defineType(symbol, resolvedType);
   }
   compile(compiler) {
   }
@@ -738,6 +814,9 @@ var TypeDeclaration = class _TypeDeclaration extends Node {
 
 // src/parser/nodes/Namespace.ts
 var Namespace = class _Namespace extends Node {
+  getName() {
+    return "NS";
+  }
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "namespace")) {
       if (parser.expect("Ident" /* IDENT */)) {
@@ -752,7 +831,11 @@ var Namespace = class _Namespace extends Node {
     return false;
   }
   bind(binder) {
-    binder.namespace(this.getValue());
+    const value = this.getValue();
+    if (!value) {
+      return;
+    }
+    binder.namespace(value);
   }
   resolve(typeResolver) {
   }
@@ -762,6 +845,9 @@ var Namespace = class _Namespace extends Node {
 
 // src/parser/nodes/ImportStatement.ts
 var ImportStatement = class _ImportStatement extends Node {
+  getName() {
+    return "IMPORT";
+  }
   static parse(parser) {
     if (parser.skipWithValue("Ident" /* IDENT */, "import")) {
       if (parser.expect("String" /* STRING */)) {
@@ -782,9 +868,15 @@ var ImportStatement = class _ImportStatement extends Node {
 
 // src/parser/AstNode.ts
 var AstNode = class extends Node {
+  getName() {
+    return "AST";
+  }
   static parse(parser) {
-    while (Namespace.parse(parser) || ImportStatement.parse(parser) || TypeDeclaration.parse(parser) || Class.parse(parser)) ;
-    return true;
+    let parsed = false;
+    while (Namespace.parse(parser) || ImportStatement.parse(parser) || TypeDeclaration.parse(parser) || Class.parse(parser)) {
+      parsed = true;
+    }
+    return parsed;
   }
   compile(compiler) {
     this.getChildren().forEach((child) => {
@@ -806,29 +898,38 @@ var AstNode = class extends Node {
 // src/parser/Parser.ts
 var Parser = class {
   /**
+   * The current id
+   * @private
+   */
+  currentId = 0;
+  /**
+   * The current position of the cursor
+   * @private
+   */
+  cursor = 0;
+  /**
+   * The TokenStream currently being parsed (input)
+   * @private
+   */
+  tokens = null;
+  /**
+   * The Abstract Syntax Tree (AST) currently being build (output)
+   * @private
+   */
+  ast = new AstNode();
+  /**
+   * The current scope, which is the Node in which we're currently parser
+   * @private
+   */
+  scope = this.ast;
+  /**
+   * @private
+   */
+  reporter;
+  /**
    * @param reporter
    */
   constructor(reporter) {
-    /**
-     * The current id
-     * @private
-     */
-    this.currentId = 0;
-    /**
-     * The current position of the cursor
-     * @private
-     */
-    this.cursor = 0;
-    /**
-     * The Abstract Syntax Tree (AST) currently being build (output)
-     * @private
-     */
-    this.ast = new AstNode();
-    /**
-     * The current scope, which is the Node in which we're currently parser
-     * @private
-     */
-    this.scope = this.ast;
     this.reporter = reporter;
   }
   /**
@@ -851,20 +952,29 @@ var Parser = class {
    * Parse all tokens in the TokenStream, starting from the cursor position
    */
   parseAll() {
-    if (!this.tokens.length) {
+    if (!this.tokens) {
       return;
     }
-    if (this.cursor > this.tokens.length - 1) {
-      return;
-    }
-    if (AstNode.parse(this)) {
-      this.parseAll();
+    while (this.tokens.length && this.cursor <= this.tokens.length - 1) {
+      const before = this.cursor;
+      const parsed = AstNode.parse(this);
+      if (!parsed || this.cursor === before) {
+        const tok = this.getCurrentToken();
+        this.reporter.report({
+          severity: "error",
+          message: `Unexpected token '${tok?.value ?? "<eof>"}'`
+        });
+        this.advance();
+      }
     }
   }
   /**
    * Get the Token at the cursor position
    */
   getCurrentToken() {
+    if (!this.tokens) {
+      return null;
+    }
     return this.tokens[this.cursor];
   }
   /**
@@ -872,6 +982,9 @@ var Parser = class {
    * @param offset
    */
   getOffsetToken(offset) {
+    if (!this.tokens) {
+      return null;
+    }
     return this.tokens[this.cursor + offset];
   }
   /**
@@ -891,7 +1004,11 @@ var Parser = class {
    * Get the value of the current token
    */
   getCurrentValue() {
-    return this.getCurrentToken().value;
+    const token = this.getCurrentToken();
+    if (!token) {
+      return null;
+    }
+    return token.value;
   }
   /**
    * Advance the cursor position by a certain offset
@@ -906,6 +1023,9 @@ var Parser = class {
    */
   accept(type) {
     const token = this.getCurrentToken();
+    if (!token) {
+      return false;
+    }
     return token && token.type === type;
   }
   /**
@@ -915,6 +1035,9 @@ var Parser = class {
    */
   acceptWithValue(type, value) {
     const token = this.getCurrentToken();
+    if (!token) {
+      return false;
+    }
     return token && token.type === type && token.value === value;
   }
   /**
@@ -924,6 +1047,9 @@ var Parser = class {
    */
   acceptAt(type, offset) {
     const token = this.getOffsetToken(offset);
+    if (!token) {
+      return false;
+    }
     return token && token.type === type;
   }
   /**
@@ -934,6 +1060,9 @@ var Parser = class {
    */
   acceptAtWithValue(type, offset, value) {
     const token = this.getOffsetToken(offset);
+    if (!token) {
+      return false;
+    }
     return token && token.type === type && token.value === value;
   }
   /**
@@ -941,6 +1070,9 @@ var Parser = class {
    */
   acceptOneOf(types) {
     const token = this.getCurrentToken();
+    if (!token) {
+      return false;
+    }
     return token && types.includes(token.type);
   }
   /**
@@ -974,9 +1106,10 @@ var Parser = class {
     if (this.accept(type)) {
       return true;
     }
+    const token = this.getCurrentToken();
     this.reporter.report({
       severity: "error",
-      message: `Expected ${type}, got ${this.getCurrentToken().type}`
+      message: `Expected ${type}, got ${token ? token.type : "?"}`
     });
     this.advance();
     return false;
@@ -990,9 +1123,10 @@ var Parser = class {
     if (this.acceptWithValue(type, value)) {
       return true;
     }
+    const token = this.getCurrentToken();
     this.reporter.report({
       severity: "error",
-      message: `Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`
+      message: `Unexpected token, expected ${type} with value ${value} got ${token ? token.type : "?"} ${token ? token.value : "?"}`
     });
     this.advance();
     return false;
@@ -1022,7 +1156,12 @@ var Parser = class {
    * Point the scope to the parent of the current scope
    */
   out() {
-    this.setScope(this.getScope().getParent());
+    const scope = this.getScope();
+    const parent = scope.getParent();
+    if (!parent) {
+      return;
+    }
+    this.setScope(parent);
   }
   /**
    * Alias of in()
@@ -1094,6 +1233,14 @@ var Parser = class {
 // src/compiler/Compiler.ts
 var Compiler = class {
   /**
+   * @private
+   */
+  symbolTable = null;
+  /**
+   * @private
+   */
+  buffer;
+  /**
    *
    */
   constructor(outputBuffer) {
@@ -1123,23 +1270,21 @@ var Compiler = class {
 
 // src/compiler/OutputBuffer.ts
 var OutputBuffer = class {
-  constructor() {
-    /**
-     *
-     * @private
-     */
-    this.head = [];
-    /**
-     *
-     * @private
-     */
-    this.body = [];
-    /**
-     *
-     * @private
-     */
-    this.foot = [];
-  }
+  /**
+   *
+   * @private
+   */
+  head = [];
+  /**
+   *
+   * @private
+   */
+  body = [];
+  /**
+   *
+   * @private
+   */
+  foot = [];
   /**
    *
    * @param string
@@ -1187,14 +1332,22 @@ var OutputBuffer = class {
 // src/binder/Binder.ts
 var Binder = class {
   /**
+   * @private
+   */
+  symbolTable;
+  /**
+   * @private
+   */
+  currentNamespace = "global";
+  /**
+   * @private
+   */
+  reporter;
+  /**
    * @param reporter
    * @param symbolTable
    */
   constructor(reporter, symbolTable) {
-    /**
-     * @private
-     */
-    this.currentNamespace = "global";
     this.reporter = reporter;
     this.symbolTable = symbolTable;
   }
@@ -1251,11 +1404,10 @@ var Binder = class {
 };
 
 // src/binder/SymbolTable.ts
+import chalk2 from "chalk";
 var SymbolTable = class {
-  constructor() {
-    this.symbols = {};
-    this.types = {};
-  }
+  symbols = {};
+  types = {};
   // global type space
   // --- types (global) ---
   registerType(name, symbol) {
@@ -1265,8 +1417,7 @@ var SymbolTable = class {
     return typeof this.types[name] !== "undefined";
   }
   getType(name) {
-    var _a;
-    return (_a = this.types[name]) != null ? _a : null;
+    return this.types[name] ?? null;
   }
   // --- values/classes (namespaced) ---
   registerSymbol(ns, name, symbol) {
@@ -1277,13 +1428,29 @@ var SymbolTable = class {
     return !!this.symbols[ns] && typeof this.symbols[ns][name] !== "undefined";
   }
   getSymbol(ns, name) {
-    var _a, _b;
-    return (_b = (_a = this.symbols[ns]) == null ? void 0 : _a[name]) != null ? _b : null;
+    return this.symbols[ns]?.[name] ?? null;
+  }
+  print() {
+    const namespaces = Object.keys(this.symbols);
+    namespaces.forEach((ns) => {
+      console.log(chalk2.bgCyan(`NS: ${ns}`));
+      console.table(this.symbols[ns]);
+    });
+    console.log(chalk2.bgCyan("GLOBAL TYPES"));
+    console.table(this.types);
   }
 };
 
 // src/analyzer/TypeResolver.ts
 var TypeResolver = class {
+  /**
+   * @private
+   */
+  typeTable;
+  /**
+   * @private
+   */
+  reporter;
   /**
    * @param typeTable
    */
@@ -1317,6 +1484,7 @@ var TypeResolver = class {
       severity: "error",
       message: "TypeResolver error, no types in type?"
     });
+    return null;
   }
   /**
    * @param typeChild
@@ -1339,15 +1507,17 @@ var TypeResolver = class {
       });
     }
     if (typeChild instanceof StringType) {
-      return {
-        kind: "literal",
-        value: typeChild.getValue()
-      };
+      const value = typeChild.getValue();
+      if (value) {
+        return { kind: "literal", value };
+      }
+      return null;
     }
     this.reporter.report({
       severity: "error",
       message: "Unknown type node"
     });
+    return null;
   }
   /**
    * @param nodes
@@ -1356,7 +1526,10 @@ var TypeResolver = class {
   normalizeUnion(nodes) {
     const resolvedTypes = [];
     nodes.forEach((node) => {
-      resolvedTypes.push(this.resolveTypeNodeChild(node));
+      const resolvedType = this.resolveTypeNodeChild(node);
+      if (resolvedType) {
+        resolvedTypes.push(resolvedType);
+      }
     });
     return resolvedTypes;
   }
@@ -1370,12 +1543,10 @@ var TypeResolver = class {
 
 // src/analyzer/TypeTable.ts
 var TypeTable = class {
-  constructor() {
-    /**
-     * @private
-     */
-    this.types = {};
-  }
+  /**
+   * @private
+   */
+  types = {};
   /**
    * @param symbolId
    * @param type
@@ -1398,16 +1569,17 @@ var TypeTable = class {
     }
     return null;
   }
+  print() {
+    console.table(this.types);
+  }
 };
 
 // src/analyzer/DiagnosticReporter.ts
 var DiagnosticReporter = class {
-  constructor() {
-    /**
-     * @private
-     */
-    this.messages = [];
-  }
+  /**
+   * @private
+   */
+  messages = [];
   /**
    * @param message
    */
@@ -1423,10 +1595,17 @@ var DiagnosticReporter = class {
     });
     return errors.length > 0;
   }
+  print() {
+    console.table(this.messages);
+  }
 };
 
 // src/analyzer/TypeChecker.ts
 var TypeChecker = class {
+  /**
+   * @private
+   */
+  reporter;
   /**
    * @param reporter
    */
@@ -1449,31 +1628,31 @@ var TypeChecker = class {
 };
 
 // src/Loom.ts
+import chalk3 from "chalk";
 var Loom = class {
   /**
-   *
    * @param code
    */
   static make(code) {
     const diagnostics = new DiagnosticReporter();
     const tokens = new Lexer().tokenize(code);
-    console.log("=== TOKENS ===");
-    console.log(tokens);
+    console.log(chalk3.bgGreenBright(" === TOKENS === "));
+    console.log("TOKEN COUNT", tokens.length);
     const ast = new Parser(diagnostics).parse(tokens);
-    console.log("=== AST ===");
+    console.log(chalk3.bgGreenBright(" === AST === "));
     console.log(ast.print());
     const symbolTable = new SymbolTable();
     new Binder(diagnostics, symbolTable).bind(ast);
-    console.log("=== SYMBOL TABLE ===");
-    console.log(symbolTable);
+    console.log(chalk3.bgGreenBright(" === SYMBOL TABLE === "));
+    symbolTable.print();
     const typeTable = new TypeTable();
     const resolver = new TypeResolver(diagnostics, typeTable);
     resolver.resolve(ast);
-    console.log("=== TYPE TABLE ===");
-    console.log(typeTable);
+    console.log(chalk3.bgGreenBright(" === TYPE TABLE === "));
+    typeTable.print();
     new TypeChecker(diagnostics).check(ast, typeTable);
-    console.log("=== DIAGNOSTICS ===");
-    console.log(diagnostics);
+    console.log(chalk3.bgGreenBright(" === DIAGNOSTICS === "));
+    diagnostics.print();
     if (diagnostics.hasErrors()) {
       console.error("Not compiling, errors found...");
       return "";

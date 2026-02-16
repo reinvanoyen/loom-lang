@@ -6,6 +6,7 @@ import IdentifierType from '../parser/nodes/IdentifierType';
 import StringType from '../parser/nodes/StringType';
 import Symbol from '../binder/Symbol';
 import DiagnosticReporter from './DiagnosticReporter';
+import { Nullable } from '../types/nullable';
 
 type TypeChildNode = IdentifierType | StringType;
 
@@ -40,7 +41,7 @@ export default class TypeResolver {
     /**
      * @param type
      */
-    resolveType(type: Type): ResolvedType {
+    resolveType(type: Type): Nullable<ResolvedType> {
 
         const children = type.getChildren();
 
@@ -59,12 +60,14 @@ export default class TypeResolver {
             severity: 'error',
             message: 'TypeResolver error, no types in type?',
         });
+
+        return null;
     }
 
     /**
      * @param typeChild
      */
-    private resolveTypeNodeChild(typeChild: TypeChildNode): ResolvedType {
+    private resolveTypeNodeChild(typeChild: TypeChildNode): Nullable<ResolvedType> {
 
         if (typeChild instanceof IdentifierType) {
 
@@ -88,16 +91,22 @@ export default class TypeResolver {
         }
 
         if (typeChild instanceof StringType) {
-            return {
-                kind: 'literal',
-                value: typeChild.getValue()
-            };
+            const value = typeChild.getValue();
+
+            if (value) {
+                return { kind: 'literal', value };
+            }
+
+            // todo - we might want to report this
+            return null;
         }
 
         this.reporter.report({
             severity: 'error',
             message: 'Unknown type node',
         });
+
+        return null;
     }
 
     /**
@@ -105,10 +114,14 @@ export default class TypeResolver {
      * @private
      */
     private normalizeUnion(nodes: TypeChildNode[]): ResolvedType[] {
-        const resolvedTypes = [];
+        const resolvedTypes: ResolvedType[] = [];
 
         nodes.forEach(node => {
-            resolvedTypes.push(this.resolveTypeNodeChild(node));
+            const resolvedType = this.resolveTypeNodeChild(node);
+
+            if (resolvedType) {
+                resolvedTypes.push(resolvedType);
+            }
         });
 
         return resolvedTypes;

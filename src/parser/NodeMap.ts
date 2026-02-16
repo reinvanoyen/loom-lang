@@ -17,7 +17,14 @@ export default class NodeMap {
      * @param node
      */
     add(node: Node) {
-        this.nodes.set(node.getId(), node)
+        const id = node.getId();
+
+        if (! id) {
+            // todo - improve error?
+            throw new Error('Node has no id');
+        }
+
+        this.nodes.set(id, node)
         return node
     }
 

@@ -9,6 +9,10 @@ import TypeResolver from '../../analyzer/TypeResolver';
 
 export default class TypeDeclaration extends Node {
 
+    getName(): string {
+        return 'TYPE_DECL';
+    }
+
     static parse(parser: Parser): boolean {
 
         if (parser.skipWithValue(TokenType.IDENT, 'type')) {
@@ -37,8 +41,15 @@ export default class TypeDeclaration extends Node {
     }
 
     bind(binder: Binder) {
-        this.setSymbol(new Symbol('type', this.getId()));
-        binder.addType(this.getValue(), this.getSymbol());
+
+        const id = this.getId();
+        const value = this.getValue();
+
+        if (id && value) {
+            const symbol = new Symbol('type', id);
+            this.setSymbol(symbol);
+            binder.addType(value, symbol);
+        }
 
         this.getChildren().forEach(child => child.bind(binder));
     }
@@ -48,10 +59,25 @@ export default class TypeDeclaration extends Node {
         const rhs = this.getChildren().find(child => child instanceof Type) as Type | undefined;
 
         if (!rhs) {
-            throw new Error(`TypeResolver error: missing RHS type for '${this.getValue()}'`);
+            // todo - potentially report this issue through diagnostics?
+            return;
         }
 
-        typeResolver.defineType(this.getSymbol(), typeResolver.resolveType(rhs));
+        const symbol = this.getSymbol();
+
+        if (! symbol) {
+            // todo - potentially report this issue through diagnostics?
+            return;
+        }
+
+        const resolvedType = typeResolver.resolveType(rhs);
+
+        if (! resolvedType) {
+            // todo - potentially report this issue through diagnostics?
+            return;
+        }
+
+        typeResolver.defineType(symbol, resolvedType);
     }
 
     compile(compiler: Compiler) {

@@ -1,12 +1,13 @@
 import Node from '../parser/Node';
 import OutputBuffer from './OutputBuffer';
 import SymbolTable from '../binder/SymbolTable';
+import { Nullable } from '../types/nullable';
 
 export default class Compiler {
     /**
      * @private
      */
-    private readonly symbolTable: SymbolTable;
+    private readonly symbolTable: Nullable<SymbolTable> = null;
 
     /**
      * @private
@@ -23,7 +24,7 @@ export default class Compiler {
     /**
      *
      */
-    public symbols(): SymbolTable {
+    public symbols(): Nullable<SymbolTable> {
         return this.symbolTable;
     }
 

@@ -22,7 +22,7 @@ export default class Parser {
      * The TokenStream currently being parsed (input)
      * @private
      */
-    private tokens: TokenStream;
+    private tokens: Nullable<TokenStream> = null;
 
     /**
      * The Abstract Syntax Tree (AST) currently being build (output)
@@ -72,24 +72,34 @@ export default class Parser {
      * Parse all tokens in the TokenStream, starting from the cursor position
      */
     private parseAll() {
-
-        if (! this.tokens.length) {
+        if (! this.tokens) {
             return;
         }
 
-        if (this.cursor > (this.tokens.length-1)) {
-            return;
-        }
+        while (this.tokens.length && this.cursor <= this.tokens.length - 1) {
+            const before = this.cursor;
 
-        if (AstNode.parse(this)) {
-            this.parseAll();
+            const parsed = AstNode.parse(this);
+
+            // If nothing parsed OR cursor didn't move, consume one token to avoid infinite loops.
+            if (!parsed || this.cursor === before) {
+                const tok = this.getCurrentToken();
+                this.reporter.report({
+                    severity: 'error',
+                    message: `Unexpected token '${tok?.value ?? '<eof>'}'`,
+                });
+                this.advance();
+            }
         }
     }
 
     /**
      * Get the Token at the cursor position
      */
-    public getCurrentToken(): Token {
+    public getCurrentToken(): Nullable<Token> {
+        if (! this.tokens) {
+            return null;
+        }
         return this.tokens[this.cursor];
     }
 
@@ -97,7 +107,10 @@ export default class Parser {
      * Get the Token at the offset of the cursor position
      * @param offset
      */
-    private getOffsetToken(offset: number): Token {
+    private getOffsetToken(offset: number): Nullable<Token> {
+        if (! this.tokens) {
+            return null;
+        }
         return this.tokens[this.cursor + offset];
     }
 
@@ -118,8 +131,14 @@ export default class Parser {
     /**
      * Get the value of the current token
      */
-    public getCurrentValue(): string {
-        return this.getCurrentToken().value;
+    public getCurrentValue(): Nullable<string> {
+        const token = this.getCurrentToken();
+
+        if (! token) {
+            return null;
+        }
+
+        return token.value;
     }
 
     /**
@@ -136,6 +155,9 @@ export default class Parser {
      */
     public accept(type: TokenType): boolean {
         const token = this.getCurrentToken();
+        if (! token) {
+            return false;
+        }
         return (token && token.type === type);
     }
 
@@ -146,6 +168,9 @@ export default class Parser {
      */
     public acceptWithValue(type: TokenType, value: string): boolean {
         const token = this.getCurrentToken();
+        if (! token) {
+            return false;
+        }
         return (
             token &&
             token.type === type &&
@@ -160,6 +185,9 @@ export default class Parser {
      */
     public acceptAt(type: TokenType, offset: number): boolean {
         const token = this.getOffsetToken(offset);
+        if (! token) {
+            return false;
+        }
         return (token && token.type === type);
     }
 
@@ -171,6 +199,9 @@ export default class Parser {
      */
     public acceptAtWithValue(type: TokenType, offset: number, value: string): boolean {
         const token = this.getOffsetToken(offset);
+        if (! token) {
+            return false;
+        }
         return (
             token &&
             token.type === type &&
@@ -183,6 +214,9 @@ export default class Parser {
      */
     public acceptOneOf(types: TokenType[]): boolean {
         const token = this.getCurrentToken();
+        if (! token) {
+            return false;
+        }
         return (token && types.includes(token.type));
     }
 
@@ -220,9 +254,10 @@ export default class Parser {
             return true;
         }
 
+        const token = this.getCurrentToken();
         this.reporter.report({
             severity: 'error',
-            message: `Expected ${type}, got ${this.getCurrentToken().type}`
+            message: `Expected ${type}, got ${token ? token.type : '?'}`
         });
         this.advance();
         return false;
@@ -238,9 +273,10 @@ export default class Parser {
             return true;
         }
 
+        const token = this.getCurrentToken();
         this.reporter.report({
             severity: 'error',
-            message: `Unexpected token, expected ${type} with value ${value} got ${this.getCurrentToken().type} ${this.getCurrentToken().value}`
+            message: `Unexpected token, expected ${type} with value ${value} got ${token ? token.type : '?'} ${token ? token.value : '?'}`
         });
         this.advance();
         return false;
@@ -274,7 +310,14 @@ export default class Parser {
      * Point the scope to the parent of the current scope
      */
     public out() {
-        this.setScope(this.getScope().getParent());
+        const scope = this.getScope();
+        const parent = scope.getParent();
+
+        if (! parent) {
+            return;
+        }
+
+        this.setScope(parent);
     }
 
     /**

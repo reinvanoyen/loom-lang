@@ -6,6 +6,11 @@ import TypeChecker from '../../analyzer/TypeChecker';
 import TypeTable from '../../analyzer/TypeTable';
 
 export default class VariantDeclaration extends Node {
+
+    getName(): string {
+        return 'VARIANT_DECL';
+    }
+
     /**
      * @param parser
      */
@@ -14,9 +19,8 @@ export default class VariantDeclaration extends Node {
         if (parser.skipWithValue(TokenType.SYMBOL,'@')) {
 
             if (parser.expect(TokenType.IDENT)) {
-                parser.insert(new VariantDeclaration());
+                parser.insert(new VariantDeclaration(parser.getCurrentValue()));
                 parser.in();
-                parser.setAttribute('name', parser.getCurrentValue());
                 parser.advance();
 
                 if (parser.expectWithValue(TokenType.SYMBOL, ':')) {

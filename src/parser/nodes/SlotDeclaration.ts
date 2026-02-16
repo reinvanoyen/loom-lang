@@ -4,6 +4,11 @@ import { TokenType } from '../../types/tokenization';
 import Compiler from '../../compiler/Compiler';
 
 export default class SlotDeclaration extends Node {
+
+    getName(): string {
+        return 'SLOT_DECL';
+    }
+
     /**
      * @param parser
      */

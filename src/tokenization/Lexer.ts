@@ -6,7 +6,7 @@ export default class Lexer {
      * The source code to tokenize
      * @private
      */
-    private source: string;
+    private source: string = '';
 
     /**
      * The current mode of lexing
@@ -86,7 +86,7 @@ export default class Lexer {
         while (this.cursor < this.end) {
 
             this.character = this.source[this.cursor];
-            this.nextCharacter = this.source[this.cursor+1] || null;
+            this.nextCharacter = this.source[this.cursor+1] || '';
 
             // Determine the mode
             if (this.mode === LexMode.ALL) {
@@ -191,7 +191,7 @@ export default class Lexer {
             // We directly alter the character and nextCharacter,
             // so we can directly consume them further down in the method
             this.character = this.source[this.cursor];
-            this.nextCharacter = this.source[this.cursor + 1] || null;
+            this.nextCharacter = this.source[this.cursor + 1] || '';
         }
 
         if (this.character !== this.delimiter || escSequence) {

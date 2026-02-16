@@ -6,6 +6,11 @@ import StringType from './StringType';
 import Binder from '../../binder/Binder';
 
 export default class Type extends Node {
+
+    getName(): string {
+        return 'TYPE';
+    }
+
     /**
      * @param parser
      */

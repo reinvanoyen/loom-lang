@@ -1,4 +1,5 @@
 import { Namespace } from '../types/namespace';
+import { Nullable } from '../types/nullable';
 
 export type SymbolType = 'namespace' | 'class' | 'type' | 'variant' | 'slot';
 
@@ -23,7 +24,7 @@ export default class Symbol {
     /**
      * @private
      */
-    private namespace: Namespace;
+    private namespace: Nullable<Namespace> = null;
 
     /**
      * @param type

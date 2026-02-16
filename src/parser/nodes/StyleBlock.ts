@@ -4,6 +4,11 @@ import { TokenType } from '../../types/tokenization';
 import Compiler from '../../compiler/Compiler';
 
 export default class StyleBlock extends Node {
+
+    getName(): string {
+        return 'STYLE';
+    }
+
     /**
      * @param parser
      */

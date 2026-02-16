@@ -28,4 +28,8 @@ export default class DiagnosticReporter {
 
         return errors.length > 0;
     }
+
+    public print() {
+        console.table(this.messages);
+    }
 }

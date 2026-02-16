@@ -5,6 +5,10 @@ import Compiler from '../../compiler/Compiler';
 
 export default class ImportStatement extends Node {
 
+    getName(): string {
+        return 'IMPORT';
+    }
+
     static parse(parser: Parser): boolean {
 
         if (parser.skipWithValue(TokenType.IDENT, 'import')) {
