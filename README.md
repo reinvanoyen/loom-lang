@@ -1,5 +1,7 @@
 # LOOM
-## The CSS language for teams making design systems
+## Contractual CSS for teams making robust design systems
+
+https://dev.to/reinvanoyen/experimenting-with-the-idea-of-a-typescript-for-css-3i8l
 
 ### Confirmed syntax (so far):
 ```
@@ -34,15 +36,22 @@ class Label {
 }
 ```
 ### Mental notes / Todos
-* Implement DiagnosticsResult.report() + all() and use it everywhere instead of throwing for user errors.
-* Upgrade Symbol (name, kind, namespace, getters, stable id).
-* Split binder/symbol-table APIs into defineType vs defineInNamespace.
-* Change TypeTable to map symbolId → ResolvedType, and add getBySymbol.
-* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check() (and add 3–5 example files as regression tests).
+* Upgrade Symbol with namespace.
+* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
 
 ### Syntax / grammar ideas
 ```
 class Link extends Button {
 	@behavior 'button' | 'link' = 'button'
+  
+  @size 'medium' {%
+		color: blue;
+		background-color: red;
+	%}
+  
+  @behavior 'link' {%
+		color: blue;
+		background-color: red;
+	%}
 }
 ```
