@@ -41,7 +41,15 @@ class Label {
 }
 ```
 ### Mental notes / Todos
-* Upgrade Symbol with namespace.
+* Improve on deterministics: write clear spec
+* Upgrade Symbol with namespace and line, col
+* Pass span (line, col) from token to AST Nodes
+* Pass span (line, col) to Diagnostics
+* Implement EventBus
+* Implement Emitters
+	* CSS
+ 	* Types
+  	* Additionally: JSON
 * Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
 
 ### Syntax / grammar ideas
