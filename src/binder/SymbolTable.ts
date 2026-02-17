@@ -21,6 +21,10 @@ export default class SymbolTable {
 
     // --- values/classes (namespaced) ---
     public registerSymbol(ns: Namespace, name: string, symbol: Symbol) {
+
+        // Set the namespace of the symbol before storing
+        symbol.setNamespace(ns);
+
         if (!this.symbols[ns]) this.symbols[ns] = {};
         this.symbols[ns][name] = symbol;
     }

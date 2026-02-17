@@ -5,11 +5,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "example": "npm run build && node example/index.js",
+    "example": "npm run build && npx loom ./example/index.loom ./example/index.css",
     "build": "tsup",
     "test": "jest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
+  },
+  "bin": {
+    "loom": "./bin/loom.js"
   },
   "repository": {
     "type": "git",

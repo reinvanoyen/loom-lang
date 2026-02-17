@@ -1,14 +1,14 @@
 import Lexer from './tokenization/Lexer';
 import Parser from './parser/Parser';
-import Compiler from './compiler/Compiler';
-import OutputBuffer from './compiler/OutputBuffer';
 import Binder from './binder/Binder';
 import SymbolTable from './binder/SymbolTable';
 import TypeResolver from './analyzer/TypeResolver';
 import TypeTable from './analyzer/TypeTable';
-import DiagnosticReporter from './analyzer/DiagnosticReporter';
+import Reporter from './diagnostics/Reporter';
 import TypeChecker from './analyzer/TypeChecker';
 import chalk from 'chalk';
+import EventBus from './bus/EventBus';
+import { TEventMap } from './types/bus';
 
 export default class Loom {
     /**
@@ -16,30 +16,36 @@ export default class Loom {
      */
     public static make(code: string): string {
 
+        const eventBus = new EventBus<TEventMap>();
+
+        eventBus.on('startTokenization', (e) => {
+            console.log(e.code);
+        });
+
         // Make a diagnostics reporter we can report messages to during this whole process
-        const diagnostics = new DiagnosticReporter();
+        const diagnostics = new Reporter();
 
         // Tokenize the code
-        const tokens = (new Lexer()).tokenize(code);
+        const tokens = (new Lexer(eventBus)).tokenize(code);
 
         console.log(chalk.bgGreenBright(' === TOKENS === '));
         console.log('TOKEN COUNT', tokens.length);
 
         // Parse the tokens into an AST
-        const ast = (new Parser(diagnostics).parse(tokens));
+        const ast = (new Parser(eventBus, diagnostics).parse(tokens));
         console.log(chalk.bgGreenBright(' === AST === '));
         console.log(ast.print());
 
         // Bind Symbols to AST
         const symbolTable = new SymbolTable();
-        (new Binder(diagnostics, symbolTable)).bind(ast);
+        (new Binder(eventBus, diagnostics, symbolTable)).bind(ast);
 
         console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));
         symbolTable.print();
 
         // Resolve types
         const typeTable = new TypeTable();
-        const resolver = new TypeResolver(diagnostics, typeTable);
+        const resolver = new TypeResolver(eventBus, diagnostics, typeTable);
         resolver.resolve(ast);
 
         console.log(chalk.bgGreenBright(' === TYPE TABLE === '));
@@ -47,7 +53,7 @@ export default class Loom {
 
         // Check the types
         // todo - this needs tons of work
-        (new TypeChecker(diagnostics)).check(ast, typeTable);
+        (new TypeChecker(eventBus, diagnostics)).check(ast, typeTable);
 
         console.log(chalk.bgGreenBright(' === DIAGNOSTICS === '));
         diagnostics.print();
@@ -57,7 +63,8 @@ export default class Loom {
             return '';
         }
 
-        // Finally we compile
-        return (new Compiler(new OutputBuffer())).compile(ast);
+        // Finally we emit
+        // todo
+        return 'CSS OUTPUT...';
     }
 }

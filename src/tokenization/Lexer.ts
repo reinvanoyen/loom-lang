@@ -1,5 +1,7 @@
 import grammar from './grammar';
 import { LexMode, TokenStream, TokenType } from '../types/tokenization';
+import EventBus from '../bus/EventBus';
+import { TEventMap } from '../types/bus';
 
 export default class Lexer {
     /**
@@ -75,6 +77,18 @@ export default class Lexer {
     private delimiter: string = ''
 
     /**
+     * @private
+     */
+    private events: EventBus<TEventMap>;
+
+    /**
+     * @param events
+     */
+    constructor(events: EventBus<TEventMap>) {
+        this.events = events;
+    }
+
+    /**
      * Transforms code into a TokenStream
      * @param text
      */
@@ -82,6 +96,8 @@ export default class Lexer {
 
         this.source = text;
         this.end = this.source.length;
+
+        this.events.emit('startTokenization', { code: text });
 
         while (this.cursor < this.end) {
 

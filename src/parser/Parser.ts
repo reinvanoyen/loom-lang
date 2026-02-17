@@ -2,7 +2,9 @@ import { Token, TokenStream, TokenType } from '../types/tokenization';
 import AstNode from './AstNode';
 import Node from './Node';
 import { Nullable } from '../types/nullable';
-import DiagnosticReporter from '../analyzer/DiagnosticReporter';
+import Reporter from '../diagnostics/Reporter';
+import EventBus from '../bus/EventBus';
+import { TEventMap } from '../types/bus';
 
 export default class Parser {
 
@@ -39,12 +41,19 @@ export default class Parser {
     /**
      * @private
      */
-    private reporter: DiagnosticReporter;
+    private events: EventBus<TEventMap>;
 
     /**
+     * @private
+     */
+    private reporter: Reporter;
+
+    /**
+     * @param events
      * @param reporter
      */
-    constructor(reporter: DiagnosticReporter) {
+    constructor(events: EventBus<TEventMap>, reporter: Reporter) {
+        this.events = events;
         this.reporter = reporter;
     }
 
@@ -54,6 +63,7 @@ export default class Parser {
      */
     public parse(tokens: TokenStream): AstNode {
 
+        this.events.emit('startParsing', { tokenStream: tokens });
         this.setTokenStream(tokens);
         this.parseAll();
 

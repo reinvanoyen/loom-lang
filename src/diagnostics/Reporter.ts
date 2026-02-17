@@ -5,7 +5,7 @@ type DiagnosticMessage = {
     // todo - add line/col later (position)
 };
 
-export default class DiagnosticReporter {
+export default class Reporter {
     /**
      * @private
      */

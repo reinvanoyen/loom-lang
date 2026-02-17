@@ -38,14 +38,21 @@ export default class Symbol {
 
     /**
      */
-    getId(): number {
+    public getId(): number {
         return this.id;
     }
 
     /**
      * @param ns
      */
-    setNamespace(ns: Namespace) {
+    public setNamespace(ns: Namespace) {
         this.namespace = ns;
+    }
+
+    /**
+     *
+     */
+    public getNamespace(): Nullable<Namespace> {
+        return this.namespace;
     }
 }
