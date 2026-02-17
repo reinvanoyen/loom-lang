@@ -1,10 +1,11 @@
-import { Token, TokenStream, TokenType } from '../types/tokenization';
+import { Token, TokenType } from '../types/tokenization';
 import AstNode from './AstNode';
 import Node from './Node';
 import { Nullable } from '../types/nullable';
 import Reporter from '../diagnostics/Reporter';
 import EventBus from '../bus/EventBus';
 import { TEventMap } from '../types/bus';
+import TokenStream from '../tokenization/TokenStream';
 
 export default class Parser {
 
@@ -24,7 +25,7 @@ export default class Parser {
      * The TokenStream currently being parsed (input)
      * @private
      */
-    private tokens: Nullable<TokenStream> = null;
+    private tokens: Nullable<Token[]> = null;
 
     /**
      * The Abstract Syntax Tree (AST) currently being build (output)
@@ -59,12 +60,12 @@ export default class Parser {
 
     /**
      * Parse a TokenStream into an Abstract Syntax Tree (AST)
-     * @param tokens
+     * @param tokenStream
      */
-    public parse(tokens: TokenStream): AstNode {
+    public parse(tokenStream: TokenStream): AstNode {
 
-        this.events.emit('startParsing', { tokenStream: tokens });
-        this.setTokenStream(tokens);
+        this.events.emit('startParsing', { tokenStream });
+        this.setTokenStream(tokenStream);
         this.parseAll();
 
         return this.ast;
@@ -72,10 +73,10 @@ export default class Parser {
 
     /**
      * Set the TokenStream
-     * @param tokens
+     * @param tokenStream
      */
-    public setTokenStream(tokens: TokenStream) {
-        this.tokens = tokens;
+    public setTokenStream(tokenStream: TokenStream) {
+        this.tokens = tokenStream.getTokens();
     }
 
     /**

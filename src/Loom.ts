@@ -26,10 +26,11 @@ export default class Loom {
         const diagnostics = new Reporter();
 
         // Tokenize the code
-        const tokens = (new Lexer(eventBus)).tokenize(code);
-
+        const tokens = (new Lexer(eventBus, diagnostics)).tokenize(code);
         console.log(chalk.bgGreenBright(' === TOKENS === '));
-        console.log('TOKEN COUNT', tokens.length);
+        console.log(chalk.bgCyan('TOKEN COUNT', tokens.getLength()));
+        console.log(tokens.print());
+
 
         // Parse the tokens into an AST
         const ast = (new Parser(eventBus, diagnostics).parse(tokens));

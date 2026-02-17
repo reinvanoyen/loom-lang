@@ -8,9 +8,6 @@ export enum LexMode {
     NEWLINE,
     STRING,
     RAW_BLOCK,
-    VAR,
-    COLOR,
-    COMMENT
 }
 
 export enum TokenType {
@@ -26,9 +23,14 @@ export enum TokenType {
 export type Token = {
     value: string;
     type: TokenType;
-    line: number;
-    position: number;
-    end: boolean;
+    line?: number;
+    position?: number;
+    startPosition?: Position;
+    endPosition?: Position;
 }
 
-export type TokenStream = Token[];
+export type Position = {
+    index: number;
+    line: number;
+    column: number;
+};

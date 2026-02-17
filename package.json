@@ -5,6 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "demo": "npm run build && node ./example/demo.js",
     "example": "npm run build && npx loom ./example/index.loom ./example/index.css",
     "build": "tsup",
     "test": "jest",

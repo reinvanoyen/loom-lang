@@ -1,8 +1,13 @@
 import grammar from './grammar';
-import { LexMode, TokenStream, TokenType } from '../types/tokenization';
+import { LexMode, Position, TokenType } from '../types/tokenization';
 import EventBus from '../bus/EventBus';
 import { TEventMap } from '../types/bus';
+import Reporter from '../diagnostics/Reporter';
+import TokenStream from './TokenStream';
 
+/**
+ * Notes: span includes delimiters, token value excludes them
+ */
 export default class Lexer {
     /**
      * The source code to tokenize
@@ -17,40 +22,16 @@ export default class Lexer {
     private mode: LexMode = LexMode.ALL;
 
     /**
-     * The current position of the cursor
+     * The current position
      * @private
      */
-    private cursor: number = 0;
+    private position: Position = { index: 0, line: 1, column: 1 };
 
     /**
-     * The position of the cursor at the start of the mode
+     * The position at which we started lexing in a new mode
      * @private
      */
-    private modeStartCursor: number = 0;
-
-    /**
-     * The current line, starting at line 1
-     * @private
-     */
-    private line: number = 1;
-
-    /**
-     * The current position on the current line, starting at 1
-     * @private
-     */
-    private column: number = 1;
-
-    /**
-     * The current character
-     * @private
-     */
-    private character: string = '';
-
-    /**
-     * The next character, handy for simple look-ahead
-     * @private
-     */
-    private nextCharacter: string = '';
+    private modeStartPosition: Position =  { index: 0, line: 1, column: 1 };
 
     /**
      * The index of the last character, also the amount of characters
@@ -62,7 +43,7 @@ export default class Lexer {
      * The current token stream being created
      * @private
      */
-    private tokens: TokenStream = [];
+    private tokens: TokenStream;
 
     /**
      * The current value being lexed
@@ -82,38 +63,54 @@ export default class Lexer {
     private events: EventBus<TEventMap>;
 
     /**
-     * @param events
+     * @private
      */
-    constructor(events: EventBus<TEventMap>) {
+    private reporter: Reporter;
+
+    /**
+     * @param events
+     * @param reporter
+     */
+    constructor(events: EventBus<TEventMap>, reporter: Reporter) {
         this.events = events;
+        this.reporter = reporter;
+        this.tokens = new TokenStream();
+    }
+
+    /**
+     * @private
+     */
+    private reset() {
+        this.mode = LexMode.ALL;
+        this.position = { index: 0, line: 1, column: 1 };
+        this.modeStartPosition = { index: 0, line: 1, column: 1 };
+        this.tokens = new TokenStream();
+        this.value = '';
+        this.delimiter = '';
     }
 
     /**
      * Transforms code into a TokenStream
      * @param text
      */
-    tokenize(text: string): TokenStream {
+    public tokenize(text: string): TokenStream {
+
+        this.reset();
 
         this.source = text;
         this.end = this.source.length;
 
         this.events.emit('startTokenization', { code: text });
 
-        while (this.cursor < this.end) {
-
-            this.character = this.source[this.cursor];
-            this.nextCharacter = this.source[this.cursor+1] || '';
+        while (this.position.index < this.end) {
 
             // Determine the mode
             if (this.mode === LexMode.ALL) {
                 this.mode = this.determineMode();
-                this.modeStartCursor = this.cursor;
+                this.modeStartPosition = { ...this.position };
             }
 
             switch (this.mode) {
-                case LexMode.STRING:
-                    this.lexString();
-                    break;
                 case LexMode.IDENT:
                     this.lexIdent();
                     break;
@@ -122,6 +119,9 @@ export default class Lexer {
                     break;
                 case LexMode.NUMBER:
                     this.lexNumber();
+                    break;
+                case LexMode.STRING:
+                    this.lexString();
                     break;
                 case LexMode.SYMBOL:
                     this.lexSymbol();
@@ -138,15 +138,71 @@ export default class Lexer {
             }
         }
 
+        // Do some diagnostics for EOF. Check if we're still in a mode other than ALL
+        // if so, help out, emit the tokens and close the mode
+        this.closeMode(LexMode.STRING, TokenType.STRING, 'Unterminated string');
+        this.closeMode(LexMode.RAW_BLOCK, TokenType.RAW_BLOCK, 'Unterminated raw block');
+
         return this.tokens;
+    }
+
+    private closeMode(mode: LexMode, tokenToEmit: TokenType, warning: string) {
+        if (this.mode === mode) {
+            this.reporter.report({
+                severity: 'error',
+                message: warning,
+                span: { start: { ...this.modeStartPosition }, end: { ...this.position } }
+            });
+
+            this.tokens.add({
+                type: tokenToEmit,
+                value: this.value,
+                startPosition: { ...this.modeStartPosition },
+                endPosition: { ...this.position },
+            });
+
+            this.value = '';
+
+            // Clean up for string mode
+            if (mode === LexMode.STRING) {
+                this.delimiter = '';
+            }
+
+            // Set mode to all
+            this.mode = LexMode.ALL;
+        }
+    }
+
+    /**
+     * @param offset
+     * @private
+     */
+    private peek(offset = 0) {
+        return this.source[this.position.index + offset] ?? '';
     }
 
     /**
      * @private
      */
-    private atEnd(accountForDelimiter: boolean = false): boolean {
-        const offset = accountForDelimiter ? 1 : 0;
-        return this.cursor + offset >= this.end;
+    private advance() {
+        const c = this.peek();
+
+        if (c === '\r' && this.peek(1) === '\n') {
+            this.position.index += 2;
+            this.position.line++;
+            this.position.column = 1;
+            return;
+        }
+
+        if (c === '\n' || c === '\r') {
+            this.position.index += 1;
+            this.position.line++;
+            this.position.column = 1;
+            return;
+        }
+
+        this.position.index += 1;
+        this.position.column += 1;
     }
 
     /**
@@ -159,34 +215,34 @@ export default class Lexer {
         this.value = '';
 
         if (
-            grammar.REGEX_RAW_BLOCK_START.exec(this.character) &&
-            grammar.REGEX_RAW_BLOCK_INSIDE.exec(this.nextCharacter)
+            grammar.REGEX_RAW_BLOCK_START.test(this.peek()) &&
+            grammar.REGEX_RAW_BLOCK_INSIDE.test(this.peek(1))
         ) {
             return LexMode.RAW_BLOCK;
         }
 
-        if (grammar.REGEX_IDENT.exec(this.character)) {
+        if (grammar.REGEX_IDENT_START.test(this.peek())) {
             return LexMode.IDENT;
         }
 
-        if (grammar.REGEX_STRING_DELIMITER.exec(this.character)) {
-            this.delimiter = this.character;
+        if (grammar.REGEX_STRING_DELIMITER.test(this.peek())) {
+            this.delimiter = this.peek();
             return LexMode.STRING;
         }
 
-        if (grammar.REGEX_NUMBER.exec(this.character)) {
+        if (grammar.REGEX_NUMBER.test(this.peek())) {
             return LexMode.NUMBER;
         }
 
-        if (grammar.REGEX_SYMBOL.exec(this.character)) {
+        if (grammar.REGEX_SYMBOL.test(this.peek())) {
             return LexMode.SYMBOL;
         }
 
-        if (grammar.REGEX_NEWLINE.exec(this.character)) {
+        if (grammar.REGEX_NEWLINE.test(this.peek())) {
             return LexMode.NEWLINE;
         }
 
-        if (grammar.REGEX_WHITESPACE.exec(this.character)) {
+        if (grammar.REGEX_WHITESPACE.test(this.peek())) {
             return LexMode.WHITESPACE;
         }
 
@@ -199,37 +255,36 @@ export default class Lexer {
      */
     private lexString() {
 
-        const escSequence = (this.character === grammar.STRING_ESCAPE_SYMBOL);
-
-        // String escaping
-        if (escSequence) {
-            this.cursor += 1;
-            // We directly alter the character and nextCharacter,
-            // so we can directly consume them further down in the method
-            this.character = this.source[this.cursor];
-            this.nextCharacter = this.source[this.cursor + 1] || '';
+        // consume opening delimiter once
+        if (this.value.length === 0 && this.peek() === this.delimiter) {
+            this.advance();
+            return;
         }
 
-        if (this.character !== this.delimiter || escSequence) {
-            // Consume the character
-            this.value += this.character;
-        }
-
-        this.cursor++;
-
-        if (this.nextCharacter === this.delimiter) {
-            this.tokens.push({
+        // closing delimiter
+        if (this.peek() === this.delimiter) {
+            this.advance();
+            this.tokens.add({
                 type: TokenType.STRING,
                 value: this.value,
-                line: this.line,
-                position: this.column,
-                end: this.atEnd(true),
+                startPosition: { ...this.modeStartPosition },
+                endPosition: { ...this.position }
             });
-            this.cursor++;
-            this.column += this.cursor - this.modeStartCursor;
             this.mode = LexMode.ALL;
             this.delimiter = '';
+            return;
         }
+
+        // escape
+        if (this.peek() === grammar.STRING_ESCAPE_SYMBOL) {
+            this.advance(); // consume '\'
+            if (this.peek()) { this.value += this.peek(); this.advance(); }
+            return;
+        }
+
+        // normal char
+        this.value += this.peek();
+        this.advance();
     }
 
     /**
@@ -241,34 +296,34 @@ export default class Lexer {
         // If we just entered raw block, skip the opening "{%"
         if (
             this.value.length === 0 &&
-            grammar.REGEX_RAW_BLOCK_START.exec(this.character) &&      // '{'
-            grammar.REGEX_RAW_BLOCK_INSIDE.exec(this.nextCharacter)    // '%'
+            grammar.REGEX_RAW_BLOCK_START.test(this.peek()) &&      // '{'
+            grammar.REGEX_RAW_BLOCK_INSIDE.test(this.peek(1))    // '%'
         ) {
-            this.cursor += 2;
-            this.column += 2;
+            this.advance();
+            this.advance();
             return;
         }
 
         if (
-            grammar.REGEX_RAW_BLOCK_INSIDE.exec(this.character) &&
-            grammar.REGEX_RAW_BLOCK_END.exec(this.nextCharacter)
+            grammar.REGEX_RAW_BLOCK_INSIDE.test(this.peek()) &&
+            grammar.REGEX_RAW_BLOCK_END.test(this.peek(1))
         ) {
-            this.tokens.push({
+            this.advance();
+            this.advance();
+
+            this.tokens.add({
                 type: TokenType.RAW_BLOCK,
                 value: this.value,
-                line: this.line,
-                position: this.column,
-                end: this.atEnd(),
+                startPosition: { ...this.modeStartPosition },
+                endPosition: { ...this.position },
             });
-            this.cursor += 2;
-            this.column += 2;
+
             this.mode = LexMode.ALL;
             return;
         }
 
-        this.value += this.character;
-        this.cursor++;
-        this.column++;
+        this.value += this.peek();
+        this.advance();
     }
 
     /**
@@ -276,19 +331,17 @@ export default class Lexer {
      * @private
      */
     private lexIdent() {
+        // We consume the character
+        this.value += this.peek();
+        this.advance();
 
-        this.value += this.character;
-        this.cursor++;
-
-        if (! this.nextCharacter || ! grammar.REGEX_IDENT.exec(this.nextCharacter)) {
-            this.tokens.push({
+        if (! this.peek() || ! grammar.REGEX_IDENT_CONT.test(this.peek())) {
+            this.tokens.add({
                 type: TokenType.IDENT,
                 value: this.value,
-                line: this.line,
-                position: this.column,
-                end: this.atEnd(),
+                startPosition: { ...this.modeStartPosition },
+                endPosition: { ...this.position },
             });
-            this.column += this.value.length;
             this.mode = LexMode.ALL;
         }
     }
@@ -298,18 +351,17 @@ export default class Lexer {
      * @private
      */
     private lexNumber() {
-        this.value += this.character;
-        this.cursor++;
+        this.value += this.peek();
+        this.advance();
 
-        if (!this.nextCharacter || !grammar.REGEX_NUMBER.exec(this.nextCharacter)) {
-            this.tokens.push({
+        if (!this.peek() || !grammar.REGEX_NUMBER.test(this.peek())) {
+            this.tokens.add({
                 type: TokenType.NUMBER,
                 value: this.value,
-                line: this.line,
-                position: this.column,
-                end: this.atEnd(),
+                startPosition: { ...this.modeStartPosition },
+                endPosition: { ...this.position },
             });
-            this.column += this.cursor - this.modeStartCursor;
+
             this.mode = LexMode.ALL;
         }
     }
@@ -319,17 +371,14 @@ export default class Lexer {
      * @private
      */
     private lexSymbol() {
-
-        this.cursor++;
-
-        this.tokens.push({
+        const value = this.peek();
+        this.advance();
+        this.tokens.add({
             type: TokenType.SYMBOL,
-            value: this.character,
-            line: this.line,
-            position: this.column,
-            end: this.atEnd(),
+            value: value,
+            startPosition: { ...this.modeStartPosition },
+            endPosition: { ...this.position },
         });
-        this.column++;
         this.mode = LexMode.ALL;
     }
 
@@ -338,9 +387,7 @@ export default class Lexer {
      * @private
      */
     private lexNewline() {
-        this.cursor++;
-        this.line++;
-        this.column = 1;
+        this.advance();
         this.mode = LexMode.ALL;
     }
 
@@ -349,8 +396,7 @@ export default class Lexer {
      * @private
      */
     private lexWhitespace() {
-        this.cursor++;
-        this.column++;
+        this.advance();
         this.mode = LexMode.ALL;
     }
 
@@ -359,15 +405,14 @@ export default class Lexer {
      * @private
      */
     private lexUnknown() {
-        this.tokens.push({
+        const value = this.peek();
+        this.advance();
+        this.tokens.add({
             type: TokenType.UNKNOWN,
-            value: this.character,
-            line: this.line,
-            position: this.column,
-            end: this.atEnd(),
+            value: value,
+            startPosition: { ...this.modeStartPosition },
+            endPosition: { ...this.position },
         });
-        this.cursor++;
-        this.column++;
         this.mode = LexMode.ALL;
     }
 }
