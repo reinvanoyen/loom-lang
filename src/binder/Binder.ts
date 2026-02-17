@@ -63,6 +63,7 @@ export default class Binder {
                 severity: 'error',
                 message: `Binding error: ${name} already exists`
             });
+            return;
         }
         this.events.emit('symbolBind', { name, symbol });
         this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
@@ -91,6 +92,7 @@ export default class Binder {
                 severity: 'error',
                 message: `Binding error: type '${name}' already exists`
             });
+            return;
         }
         this.events.emit('symbolBind', { name, symbol });
         this.symbolTable.registerType(name, symbol);
