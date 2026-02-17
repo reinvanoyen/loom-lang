@@ -1,7 +1,7 @@
 import Node from '../Node';
 import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
-import Compiler from '../../compiler/Compiler';
+import Compiler from '../../Compiler';
 import Binder from '../../binder/Binder';
 import TypeResolver from '../../analyzer/TypeResolver';
 

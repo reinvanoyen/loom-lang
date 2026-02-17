@@ -1,7 +1,7 @@
 import Node from '../Node';
 import Parser from '../Parser';
 import { TokenType } from '../../types/tokenization';
-import Compiler from '../../compiler/Compiler';
+import Compiler from '../../Compiler';
 
 export default class SlotDeclaration extends Node {
 

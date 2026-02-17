@@ -1,4 +1,4 @@
-import { Lexer, EventBus, Reporter } from "../dist/index.js";
+import { Lexer, EventBus, Reporter } from '../../dist/index.js';
 
 const reporter = new Reporter();
 const lexer = new Lexer(new EventBus(), reporter);

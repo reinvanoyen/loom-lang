@@ -5,7 +5,7 @@ import VariantDeclaration from './VariantDeclaration';
 import SlotDeclaration from './SlotDeclaration';
 import StyleBlock from './StyleBlock';
 import Binder from '../../binder/Binder';
-import Compiler from '../../compiler/Compiler';
+import Compiler from '../../Compiler';
 import Symbol from '../../binder/Symbol';
 import TypeResolver from '../../analyzer/TypeResolver';
 

@@ -3,7 +3,7 @@ import Parser from './Parser';
 import Class from './nodes/Class';
 import TypeDeclaration from './nodes/TypeDeclaration';
 import Namespace from './nodes/Namespace';
-import Compiler from '../compiler/Compiler';
+import Compiler from '../Compiler';
 import ImportStatement from './nodes/ImportStatement';
 import Binder from '../binder/Binder';
 import TypeResolver from '../analyzer/TypeResolver';

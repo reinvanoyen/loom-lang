@@ -2,7 +2,7 @@ import { Nullable } from '../types/nullable';
 import { AttributeValue } from '../types/attribute';
 import Parser from './Parser';
 import Symbol from '../binder/Symbol';
-import Compiler from '../compiler/Compiler';
+import Compiler from '../Compiler';
 import Binder from '../binder/Binder';
 import TypeResolver from '../analyzer/TypeResolver';
 import TypeChecker from '../analyzer/TypeChecker';

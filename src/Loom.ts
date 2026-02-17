@@ -1,15 +1,16 @@
-import Lexer from './tokenization/Lexer';
-import Parser from './parser/Parser';
-import Binder from './binder/Binder';
-import SymbolTable from './binder/SymbolTable';
-import TypeResolver from './analyzer/TypeResolver';
-import TypeTable from './analyzer/TypeTable';
-import Reporter from './diagnostics/Reporter';
-import TypeChecker from './analyzer/TypeChecker';
+import Lexer from './compiler/tokenization/Lexer';
+import Parser from './compiler/parser/Parser';
+import Binder from './compiler/binder/Binder';
+import SymbolTable from './compiler/binder/SymbolTable';
+import TypeResolver from './compiler/analyzer/TypeResolver';
+import TypeTable from './compiler/analyzer/TypeTable';
+import Reporter from './compiler/diagnostics/Reporter';
+import TypeChecker from './compiler/analyzer/TypeChecker';
 import chalk from 'chalk';
-import EventBus from './bus/EventBus';
-import { TEventMap } from './types/bus';
+import EventBus from './compiler/bus/EventBus';
+import { TEventMap } from './compiler/types/bus';
 
+// todo this should become the compiler pipeline...
 export default class Loom {
     /**
      * @param code
