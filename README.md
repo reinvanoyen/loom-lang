@@ -8,6 +8,18 @@
 ## Contractual CSS for teams making robust design systems
 https://dev.to/reinvanoyen/experimenting-with-the-idea-of-a-typescript-for-css-3i8l
 
+### Mental notes / Todos
+* Improve on deterministics: write clear spec
+* Upgrade Symbol with namespace and line, col
+* Pass span (line, col) from token to AST Nodes
+* Pass span (line, col) to Diagnostics
+* Implement EventBus
+* Implement Emitters
+	* CSS
+ 	* Types
+  	* Additionally: JSON
+* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
+
 ### Confirmed syntax (so far):
 ```
 namespace ui;
@@ -40,17 +52,6 @@ class Label {
 	@intent: Intent;
 }
 ```
-### Mental notes / Todos
-* Improve on deterministics: write clear spec
-* Upgrade Symbol with namespace and line, col
-* Pass span (line, col) from token to AST Nodes
-* Pass span (line, col) to Diagnostics
-* Implement EventBus
-* Implement Emitters
-	* CSS
- 	* Types
-  	* Additionally: JSON
-* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
 
 ### Syntax / grammar ideas
 ```
