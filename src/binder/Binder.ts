@@ -2,14 +2,11 @@ import Node from '../parser/Node';
 import Symbol from './Symbol';
 import SymbolTable from '../binder/SymbolTable';
 import { Namespace } from '../types/namespace';
-import DiagnosticReporter from '../analyzer/DiagnosticReporter';
+import Reporter from '../diagnostics/Reporter';
+import EventBus from '../bus/EventBus';
+import { TEventMap } from '../types/bus';
 
 export default class Binder {
-    /**
-     * @private
-     */
-    private symbolTable: SymbolTable;
-
     /**
      * @private
      */
@@ -18,13 +15,26 @@ export default class Binder {
     /**
      * @private
      */
-    private reporter: DiagnosticReporter;
+    private symbolTable: SymbolTable;
+
 
     /**
+     * @private
+     */
+    private events: EventBus<TEventMap>
+
+    /**
+     * @private
+     */
+    private reporter: Reporter;
+
+    /**
+     * @param events
      * @param reporter
      * @param symbolTable
      */
-    constructor(reporter: DiagnosticReporter, symbolTable: SymbolTable) {
+    constructor(events: EventBus<TEventMap>, reporter: Reporter, symbolTable: SymbolTable) {
+        this.events = events;
         this.reporter = reporter;
         this.symbolTable = symbolTable;
     }
@@ -54,6 +64,7 @@ export default class Binder {
                 message: `Binding error: ${name} already exists`
             });
         }
+        this.events.emit('symbolBind', { name, symbol });
         this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
     }
 
@@ -70,7 +81,10 @@ export default class Binder {
         return this.symbolTable.getSymbol(this.currentNamespace, name);
     }
 
-    // GLOBAL TYPE SPACE
+    /**
+     * @param name
+     * @param symbol
+     */
     addType(name: string, symbol: Symbol) {
         if (this.symbolTable.hasType(name)) {
             this.reporter.report({
@@ -78,7 +92,7 @@ export default class Binder {
                 message: `Binding error: type '${name}' already exists`
             });
         }
-        // optional metadata:
+        this.events.emit('symbolBind', { name, symbol });
         this.symbolTable.registerType(name, symbol);
     }
 

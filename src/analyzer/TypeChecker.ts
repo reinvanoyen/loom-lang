@@ -1,26 +1,36 @@
 import AstNode from '../parser/AstNode';
-import DiagnosticReporter from './DiagnosticReporter';
+import Reporter from '../diagnostics/Reporter';
 import TypeTable from './TypeTable';
 import { ResolvedType } from '../types/analyzer';
+import EventBus from '../bus/EventBus';
+import { TEventMap } from '../types/bus';
 
 export default class TypeChecker {
+    /**
+     * @private
+     */
+    private events: EventBus<TEventMap>;
 
     /**
      * @private
      */
-    private reporter: DiagnosticReporter;
+    private reporter: Reporter;
 
     /**
+     * @param events
      * @param reporter
      */
-    constructor(reporter: DiagnosticReporter) {
+    constructor(events: EventBus<TEventMap>, reporter: Reporter) {
+        this.events = events;
         this.reporter = reporter;
     }
 
     /**
      * @param ast
+     * @param typeTable
      */
     check(ast: AstNode, typeTable: TypeTable) {
+        this.events.emit('startTypeChecking', { ast, typeTable });
         ast.check(this, typeTable);
     }
 

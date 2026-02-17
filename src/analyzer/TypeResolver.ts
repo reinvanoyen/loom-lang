@@ -5,12 +5,20 @@ import { ResolvedType } from '../types/analyzer';
 import IdentifierType from '../parser/nodes/IdentifierType';
 import StringType from '../parser/nodes/StringType';
 import Symbol from '../binder/Symbol';
-import DiagnosticReporter from './DiagnosticReporter';
+import Reporter from '../diagnostics/Reporter';
 import { Nullable } from '../types/nullable';
+import EventBus from '../bus/EventBus';
+import { TEventMap } from '../types/bus';
 
 type TypeChildNode = IdentifierType | StringType;
 
 export default class TypeResolver {
+
+    /**
+     * @private
+     */
+    private events: EventBus<TEventMap>;
+
     /**
      * @private
      */
@@ -19,12 +27,13 @@ export default class TypeResolver {
     /**
      * @private
      */
-    private reporter: DiagnosticReporter;
+    private reporter: Reporter;
     
     /**
      * @param typeTable
      */
-    constructor(reporter: DiagnosticReporter, typeTable: TypeTable) {
+    constructor(events: EventBus<TEventMap>, reporter: Reporter, typeTable: TypeTable) {
+        this.events = events;
         this.reporter = reporter;
         this.typeTable = typeTable;
     }
@@ -36,6 +45,7 @@ export default class TypeResolver {
      */
     defineType(symbol: Symbol, type: ResolvedType) {
         this.typeTable.registerType(symbol.getId(), type);
+        this.events.emit('typeDefine', { symbol, type });
     }
 
     /**
@@ -131,6 +141,7 @@ export default class TypeResolver {
      * @param ast
      */
     resolve(ast: AstNode) {
+        this.events.emit('startTypeResolving', { ast });
         ast.resolve(this);
     }
 }

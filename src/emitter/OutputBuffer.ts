@@ -22,7 +22,7 @@ export default class OutputBuffer {
      *
      * @param string
      */
-    writeBody(string: string) {
+    write(string: string) {
         this.body.push(string);
     }
 
@@ -30,7 +30,7 @@ export default class OutputBuffer {
      *
      * @param string
      */
-    writeHead(string: string) {
+    prepend(string: string) {
         this.head.push(string);
     }
 
@@ -38,32 +38,14 @@ export default class OutputBuffer {
      *
      * @param string
      */
-    writeFoot(string: string) {
+    append(string: string) {
         this.foot.push(string);
     }
 
     /**
      *
      */
-    getHead(): string {
-        return this.head.join('');
-    }
-
-    /**
-     *
-     */
-    getBody(): string {
-        return this.body.join('');
-    }
-
-    /**
-     *
-     */
-    getFoot(): string {
-        return this.foot.join('');
-    }
-
     render(): string {
-        return this.getHead()+this.getBody()+this.getFoot();
+        return this.head.join('')+this.body.join('')+this.foot.join('');
     }
 }
