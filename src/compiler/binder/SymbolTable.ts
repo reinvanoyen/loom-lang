@@ -1,5 +1,5 @@
 import { Namespace } from '../types/namespace';
-import Symbol from '../binder/Symbol';
+import Symbol from './Symbol';
 import chalk from 'chalk';
 
 export default class SymbolTable {

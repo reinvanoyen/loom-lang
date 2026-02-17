@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "example": "npm run build && npx loom ./example/index.loom ./example/index.css",
+    "demo": "npm run build && node src/playground/demo.js",
+    "example": "npm run build && npx loom src/playground/index.loom src/playground/index.css",
     "build": "tsup",
     "test": "jest",
     "lint": "eslint .",

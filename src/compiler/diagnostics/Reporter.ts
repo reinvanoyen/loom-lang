@@ -1,8 +1,10 @@
+import { Position } from '../types/tokenization';
+
 type DiagnosticMessage = {
     severity: 'info' | 'warning' | 'error';
     message: string;
     nodeId?: number;
-    // todo - add line/col later (position)
+    span?: { start: Position, end: Position };
 };
 
 export default class Reporter {
