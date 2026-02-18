@@ -1,4 +1,4 @@
-import AstNode from '../parser/AstNode';
+import AST from '../parser/AST';
 import TypeTable from './TypeTable';
 import Type from '../parser/nodes/Type';
 import { ResolvedType } from '../types/analyzer';
@@ -140,7 +140,7 @@ export default class TypeResolver {
     /**
      * @param ast
      */
-    resolve(ast: AstNode) {
+    resolve(ast: AST) {
         this.events.emit('startTypeResolving', { ast });
         ast.resolve(this);
     }

@@ -26,7 +26,7 @@ export default class Class extends Node {
 
                 if (parser.skipWithValue(TokenType.IDENT, 'extends')) {
                     if (parser.expect(TokenType.IDENT)) {
-                        parser.setAttribute('extends', parser.getCurrentValue());
+                        parser.setAttribute('extends', parser.getCurrentValue() || '');
                         parser.advance();
                     }
                 }

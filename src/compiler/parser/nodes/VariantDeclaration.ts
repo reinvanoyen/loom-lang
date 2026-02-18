@@ -28,12 +28,12 @@ export default class VariantDeclaration extends Node {
                 }
 
                 Type.parse(parser);
-                parser.setAttribute('type');
+                parser.setAttributeFromLastChild('type');
 
                 // Parse default value
                 if (parser.skipWithValue(TokenType.SYMBOL, '=')) {
                     if (parser.expect(TokenType.STRING)) {
-                        parser.setAttribute('default', parser.getCurrentValue());
+                        parser.setAttribute('default', parser.getCurrentValue() || '');
                         parser.advance();
                     }
                 }
