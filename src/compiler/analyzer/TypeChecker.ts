@@ -2,7 +2,7 @@ import AST from '../parser/AST';
 import Reporter from '../diagnostics/Reporter';
 import TypeTable from './TypeTable';
 import { ResolvedType } from '../types/analyzer';
-import EventBus from '../bus/EventBus';
+import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 
 export default class TypeChecker {

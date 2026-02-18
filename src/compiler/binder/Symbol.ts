@@ -3,13 +3,11 @@ import { Nullable } from '../types/nullable';
 
 export type SymbolType = 'namespace' | 'class' | 'type' | 'variant' | 'slot';
 
-let currentId = 0;
-
 export default class Symbol {
     /**
      * @private
      */
-    private readonly id: number;
+    private id: Nullable<number> = null;
 
     /**
      * @private
@@ -31,14 +29,20 @@ export default class Symbol {
      * @param nodeId
      */
     constructor(type: SymbolType, nodeId: number) {
-        this.id = currentId++;
         this.type = type;
         this.nodeId = nodeId;
     }
 
     /**
+     * @param id
      */
-    public getId(): number {
+    public setId(id: number) {
+        this.id = id;
+    }
+
+    /**
+     */
+    public getId(): Nullable<number> {
         return this.id;
     }
 

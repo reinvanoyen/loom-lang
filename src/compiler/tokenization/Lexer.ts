@@ -1,6 +1,6 @@
 import grammar from './grammar';
 import { LexMode, Position, TokenType } from '../types/tokenization';
-import EventBus from '../bus/EventBus';
+import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 import Reporter from '../diagnostics/Reporter';
 import TokenStream from './TokenStream';

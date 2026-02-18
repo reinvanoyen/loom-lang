@@ -8,6 +8,7 @@ export default class TokenStream {
     private tokens: Token[] = [];
 
     /**
+     * The current position of the cursor
      * @private
      */
     private cursor: number = 0;
@@ -30,8 +31,14 @@ export default class TokenStream {
      *
      */
     public isEOF(): boolean {
-        // todo
-        return true;
+        return (this.cursor >= this.tokens.length);
+    }
+
+    /**
+     *
+     */
+    public getCursor(): number {
+        return this.cursor;
     }
 
     /*
