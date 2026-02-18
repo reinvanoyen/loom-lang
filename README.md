@@ -8,6 +8,14 @@
 ## Contractual CSS for teams making robust design systems
 https://dev.to/reinvanoyen/experimenting-with-the-idea-of-a-typescript-for-css-3i8l
 
+### Mental notes / Todos
+* Seperate Parser and AST Nodes
+* Seperate Parser and ASTBuilder
+* Seperate Parser and TokenStream walking
+* Always register span on AST Node
+* Always give Span to diagnostics Reporter
+* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
+
 ### Confirmed syntax (so far):
 ```
 namespace ui;
@@ -40,9 +48,6 @@ class Label {
 	@intent: Intent;
 }
 ```
-### Mental notes / Todos
-* Upgrade Symbol with namespace.
-* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
 
 ### Syntax / grammar ideas
 ```
