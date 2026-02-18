@@ -3,12 +3,12 @@ import AST from './AST';
 import Node from './Node';
 import { Nullable } from '../types/nullable';
 import Reporter from '../diagnostics/Reporter';
-import EventBus from '../bus/EventBus';
+import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 import TokenStream from '../tokenization/TokenStream';
+import ASTBuilder from './ASTBuilder';
 
 export default class Parser {
-
     /**
      * The current id
      * @private
@@ -16,21 +16,9 @@ export default class Parser {
     private currentId: number = 0;
 
     /**
-     * The current position of the cursor
-     * @private
-     */
-    private cursor: number = 0;
-
-    /**
      * @private
      */
     private tokenStream: Nullable<TokenStream> = null;
-
-    /**
-     * The TokenStream currently being parsed (input)
-     * @private
-     */
-    private tokens: Nullable<Token[]> = null;
 
     /**
      * The Abstract Syntax Tree (AST) currently being build (output)
@@ -47,6 +35,11 @@ export default class Parser {
     /**
      * @private
      */
+    private builder: ASTBuilder;
+
+    /**
+     * @private
+     */
     private events: EventBus<TEventMap>;
 
     /**
@@ -55,10 +48,12 @@ export default class Parser {
     private reporter: Reporter;
 
     /**
+     * @param builder
      * @param events
      * @param reporter
      */
-    constructor(events: EventBus<TEventMap>, reporter: Reporter) {
+    constructor(builder: ASTBuilder, events: EventBus<TEventMap>, reporter: Reporter) {
+        this.builder = builder;
         this.events = events;
         this.reporter = reporter;
     }
@@ -67,11 +62,9 @@ export default class Parser {
      *
      */
     reset() {
-        this.cursor = 0;
         this.currentId = 0;
         this.ast = new AST();
         this.scope = this.ast;
-        this.tokens = [];
     }
 
     /**
@@ -83,36 +76,27 @@ export default class Parser {
         this.reset();
 
         this.events.emit('startParsing', { tokenStream });
-        this.setTokenStream(tokenStream);
+        this.tokenStream = tokenStream;
         this.parseAll();
 
         return this.ast;
     }
 
     /**
-     * Set the TokenStream
-     * @param tokenStream
-     */
-    public setTokenStream(tokenStream: TokenStream) {
-        this.tokenStream = tokenStream;
-        this.tokens = tokenStream.getTokens();
-    }
-
-    /**
      * Parse all tokens in the TokenStream, starting from the cursor position
      */
     private parseAll() {
-        if (! this.tokens) {
+        if (! this.tokenStream) {
             return;
         }
 
-        while (this.tokens.length && this.cursor < this.tokens.length) {
-            const before = this.cursor;
+        while (! this.tokenStream.isEOF()) {
+            const before = this.tokenStream.getCursor();
 
             const parsed = AST.parse(this);
 
             // If nothing parsed OR cursor didn't move, consume one token to avoid infinite loops.
-            if (!parsed || this.cursor === before) {
+            if (!parsed || this.tokenStream.getCursor() === before) {
                 // todo - implement synchronize here, parser explodes with errors here
                 const tok = this.getCurrentToken();
                 this.reporter.report({
@@ -128,10 +112,11 @@ export default class Parser {
      * Get the Token at the cursor position
      */
     public getCurrentToken(): Nullable<Token> {
-        if (! this.tokens) {
+        if (! this.tokenStream) {
             return null;
         }
-        return this.tokens[this.cursor];
+
+        return this.tokenStream.peek();
     }
 
     /**
@@ -139,10 +124,11 @@ export default class Parser {
      * @param offset
      */
     private getOffsetToken(offset: number): Nullable<Token> {
-        if (! this.tokens) {
+        if (! this.tokenStream) {
             return null;
         }
-        return this.tokens[this.cursor + offset];
+
+        return this.tokenStream.peek(offset);
     }
 
     /**
@@ -188,7 +174,6 @@ export default class Parser {
         if (this.tokenStream) {
             this.tokenStream.advance(offset);
         }
-        this.cursor = this.cursor + offset;
     }
 
     /**
@@ -362,20 +347,6 @@ export default class Parser {
     }
 
     /**
-     * Alias of in()
-     */
-    public traverseUp() {
-        this.in();
-    }
-
-    /**
-     * Alias of out()
-     */
-    public traverseDown() {
-        this.out();
-    }
-
-    /**
      * Get the current scope Node
      */
     public getScope(): Node {
@@ -406,7 +377,6 @@ export default class Parser {
     private assignNewId(node: Node) {
         this.currentId++;
         node.setId(this.currentId);
-
     }
 
     /**

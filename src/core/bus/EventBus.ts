@@ -1,4 +1,4 @@
-import type { TEventKey, TEventListener, TEventMap } from '../types/bus';
+import type { TEventKey, TEventListener, TEventMap } from '../../compiler/types/bus';
 
 interface TListenerEntry<E, K extends TEventKey<E>> {
     id: number

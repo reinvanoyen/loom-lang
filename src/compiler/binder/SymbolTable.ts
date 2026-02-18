@@ -1,13 +1,34 @@
 import { Namespace } from '../types/namespace';
 import Symbol from './Symbol';
 import chalk from 'chalk';
+import IdAllocator from '../../core/allocators/IdAllocator';
 
 export default class SymbolTable {
+    /**
+     * @private
+     */
+    private idAlloc: IdAllocator;
+
+    /**
+     * @private
+     */
     private symbols: Record<Namespace, Record<string, Symbol>> = {};
+
+    /**
+     * @private
+     */
     private types: Record<string, Symbol> = {}; // global type space
+
+    /**
+     * @param idAlloc
+     */
+    constructor(idAlloc: IdAllocator) {
+        this.idAlloc = idAlloc;
+    }
 
     // --- types (global) ---
     public registerType(name: string, symbol: Symbol) {
+        symbol.setId(this.idAlloc.allocate());
         this.types[name] = symbol;
     }
 
@@ -24,6 +45,7 @@ export default class SymbolTable {
 
         // Set the namespace of the symbol before storing
         symbol.setNamespace(ns);
+        symbol.setId(this.idAlloc.allocate());
 
         if (!this.symbols[ns]) this.symbols[ns] = {};
         this.symbols[ns][name] = symbol;

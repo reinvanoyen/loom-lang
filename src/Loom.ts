@@ -7,8 +7,10 @@ import TypeTable from './compiler/analyzer/TypeTable';
 import Reporter from './compiler/diagnostics/Reporter';
 import TypeChecker from './compiler/analyzer/TypeChecker';
 import chalk from 'chalk';
-import EventBus from './compiler/bus/EventBus';
+import EventBus from './core/bus/EventBus';
 import { TEventMap } from './compiler/types/bus';
+import ASTBuilder from './compiler/parser/ASTBuilder';
+import IdAllocator from './core/allocators/IdAllocator';
 
 // todo this should become the compiler pipeline...
 export default class Loom {
@@ -32,14 +34,14 @@ export default class Loom {
         console.log(chalk.bgCyan('TOKEN COUNT', tokens.getLength()));
         console.log(tokens.print());
 
-
         // Parse the tokens into an AST
-        const ast = (new Parser(eventBus, diagnostics).parse(tokens));
+        const builder = new ASTBuilder(new IdAllocator());
+        const ast = (new Parser(builder, eventBus, diagnostics).parse(tokens));
         console.log(chalk.bgGreenBright(' === AST === '));
         console.log(ast.print());
 
         // Bind Symbols to AST
-        const symbolTable = new SymbolTable();
+        const symbolTable = new SymbolTable(new IdAllocator());
         (new Binder(eventBus, diagnostics, symbolTable)).bind(ast);
 
         console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));

@@ -3,7 +3,7 @@ import Symbol from './Symbol';
 import SymbolTable from './SymbolTable';
 import { Namespace } from '../types/namespace';
 import Reporter from '../diagnostics/Reporter';
-import EventBus from '../bus/EventBus';
+import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 
 export default class Binder {

@@ -9,16 +9,12 @@
 https://dev.to/reinvanoyen/experimenting-with-the-idea-of-a-typescript-for-css-3i8l
 
 ### Mental notes / Todos
-* Improve on deterministics: write clear spec
-* Upgrade Symbol with namespace and line, col
-* Pass span (line, col) from token to AST Nodes
-* Pass span (line, col) to Diagnostics
-* Implement EventBus
-* Implement Emitters
-	* CSS
- 	* Types
-  	* Additionally: JSON
-* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
+* Seperate Parser and AST Nodes
+* Seperate Parser and ASTBuilder
+* Seperate Parser and TokenStream walking
+* Always register span on AST Node
+* Always give Span to diagnostics Reporter
+* Implement TypeChecker: followRefs + isAssignable
 
 ### Confirmed syntax (so far):
 ```

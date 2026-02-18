@@ -7,13 +7,12 @@ import StringType from '../parser/nodes/StringType';
 import Symbol from '../binder/Symbol';
 import Reporter from '../diagnostics/Reporter';
 import { Nullable } from '../types/nullable';
-import EventBus from '../bus/EventBus';
+import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 
 type TypeChildNode = IdentifierType | StringType;
 
 export default class TypeResolver {
-
     /**
      * @private
      */
@@ -44,7 +43,17 @@ export default class TypeResolver {
      * @param type
      */
     defineType(symbol: Symbol, type: ResolvedType) {
-        this.typeTable.registerType(symbol.getId(), type);
+        const symbolId = symbol.getId();
+
+        if (! symbolId) {
+            this.reporter.report({
+                severity: 'error',
+                message: 'Symbol has no id'
+            });
+            return;
+        }
+
+        this.typeTable.registerType(symbolId, type);
         this.events.emit('typeDefine', { symbol, type });
     }
 
@@ -90,14 +99,26 @@ export default class TypeResolver {
 
             const symbol = typeChild.getSymbol();
 
-            if (symbol) {
-                return { kind: 'ref', symbolId: symbol.getId() };
+            if (! symbol) {
+                this.reporter.report({
+                    severity: 'error',
+                    message: `Unbound type identifier '${typeChild.getValue()}'`,
+                });
+                return null;
             }
 
-            this.reporter.report({
-                severity: 'error',
-                message: `Unbound type identifier '${typeChild.getValue()}'`,
-            });
+            const symbolId = symbol.getId();
+
+            if (!symbolId) {
+                console.log(symbol);
+                this.reporter.report({
+                    severity: 'error',
+                    message: 'Symbol has no id',
+                });
+                return null;
+            }
+
+            return { kind: 'ref', symbolId: symbolId };
         }
 
         if (typeChild instanceof StringType) {

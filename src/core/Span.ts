@@ -1,4 +1,4 @@
-import { Position } from '../types/tokenization';
+import { Position } from '../compiler/types/tokenization';
 
 export default class Span {
     /**
