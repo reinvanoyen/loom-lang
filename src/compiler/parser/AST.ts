@@ -8,7 +8,7 @@ import ImportStatement from './nodes/ImportStatement';
 import Binder from '../binder/Binder';
 import TypeResolver from '../analyzer/TypeResolver';
 
-export default class AstNode extends Node {
+export default class AST extends Node {
 
     getName(): string {
         return 'AST';

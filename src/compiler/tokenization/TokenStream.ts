@@ -8,6 +8,45 @@ export default class TokenStream {
     private tokens: Token[] = [];
 
     /**
+     * @private
+     */
+    private cursor: number = 0;
+
+    /**
+     * Advance the cursor
+     */
+    public advance(offset = 1) {
+        this.cursor += offset;
+    }
+
+    /**
+     * @param offset
+     */
+    public peek(offset = 0): Token {
+        return this.tokens[this.cursor + offset];
+    }
+
+    /**
+     *
+     */
+    public isEOF(): boolean {
+        // todo
+        return true;
+    }
+
+    /*
+    * peek(n = 0): Token | EOF
+    isEOF(): boolean
+    next(): Token | EOF (consume current + advance)
+    consume(type?, value?): Token | null
+    match(type?, value?, n=0): boolean
+    mark(): number
+    reset(mark: number): void
+    slice(fromMark, toMark) (optional, for error messages/debug)
+    position() / index() (optional)
+    * */
+
+    /**
      * @param token
      */
     public add(token: Token) {

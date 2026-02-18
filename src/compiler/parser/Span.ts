@@ -1,3 +1,5 @@
+import { Position } from '../types/tokenization';
+
 export default class Span {
     /**
      * @private
@@ -7,35 +9,21 @@ export default class Span {
     /**
      * @private
      */
-    private startLine: number;
+    private startPosition: Position;
 
     /**
      * @private
      */
-    private startCol: number;
-
-    /**
-     * @private
-     */
-    private endLine: number;
-
-    /**
-     * @private
-     */
-    private endCol: number;
+    private endPosition: Position;
 
     /**
      * @param filename
-     * @param startLine
-     * @param startCol
-     * @param endLine
-     * @param endCol
+     * @param startPosition
+     * @param endPosition
      */
-    constructor(filename: string, startLine: number, startCol: number, endLine: number, endCol: number) {
+    constructor(filename: string, startPosition: Position, endPosition: Position) {
         this.filename = filename;
-        this.startLine = startLine;
-        this.startCol = startCol;
-        this.endLine = endLine;
-        this.endCol = endCol;
+        this.startPosition = startPosition;
+        this.endPosition = endPosition;
     }
 }

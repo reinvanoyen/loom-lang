@@ -1,4 +1,4 @@
-import AstNode from '../parser/AstNode';
+import AST from '../parser/AST';
 import Reporter from '../diagnostics/Reporter';
 import TypeTable from './TypeTable';
 import { ResolvedType } from '../types/analyzer';
@@ -29,7 +29,7 @@ export default class TypeChecker {
      * @param ast
      * @param typeTable
      */
-    check(ast: AstNode, typeTable: TypeTable) {
+    check(ast: AST, typeTable: TypeTable) {
         this.events.emit('startTypeChecking', { ast, typeTable });
         ast.check(this, typeTable);
     }

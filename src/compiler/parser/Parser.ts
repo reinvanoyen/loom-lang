@@ -1,5 +1,5 @@
 import { Token, TokenType } from '../types/tokenization';
-import AstNode from './AstNode';
+import AST from './AST';
 import Node from './Node';
 import { Nullable } from '../types/nullable';
 import Reporter from '../diagnostics/Reporter';
@@ -22,6 +22,11 @@ export default class Parser {
     private cursor: number = 0;
 
     /**
+     * @private
+     */
+    private tokenStream: Nullable<TokenStream> = null;
+
+    /**
      * The TokenStream currently being parsed (input)
      * @private
      */
@@ -31,7 +36,7 @@ export default class Parser {
      * The Abstract Syntax Tree (AST) currently being build (output)
      * @private
      */
-    private ast: AstNode = new AstNode();
+    private ast: AST = new AST();
 
     /**
      * The current scope, which is the Node in which we're currently parser
@@ -59,10 +64,23 @@ export default class Parser {
     }
 
     /**
+     *
+     */
+    reset() {
+        this.cursor = 0;
+        this.currentId = 0;
+        this.ast = new AST();
+        this.scope = this.ast;
+        this.tokens = [];
+    }
+
+    /**
      * Parse a TokenStream into an Abstract Syntax Tree (AST)
      * @param tokenStream
      */
-    public parse(tokenStream: TokenStream): AstNode {
+    public parse(tokenStream: TokenStream): AST {
+
+        this.reset();
 
         this.events.emit('startParsing', { tokenStream });
         this.setTokenStream(tokenStream);
@@ -76,6 +94,7 @@ export default class Parser {
      * @param tokenStream
      */
     public setTokenStream(tokenStream: TokenStream) {
+        this.tokenStream = tokenStream;
         this.tokens = tokenStream.getTokens();
     }
 
@@ -87,13 +106,14 @@ export default class Parser {
             return;
         }
 
-        while (this.tokens.length && this.cursor <= this.tokens.length - 1) {
+        while (this.tokens.length && this.cursor < this.tokens.length) {
             const before = this.cursor;
 
-            const parsed = AstNode.parse(this);
+            const parsed = AST.parse(this);
 
             // If nothing parsed OR cursor didn't move, consume one token to avoid infinite loops.
             if (!parsed || this.cursor === before) {
+                // todo - implement synchronize here, parser explodes with errors here
                 const tok = this.getCurrentToken();
                 this.reporter.report({
                     severity: 'error',
@@ -131,12 +151,20 @@ export default class Parser {
      * @param name
      * @param value
      */
-    public setAttribute(name: string, value: Nullable<string | Node> = null) {
-        if (value === null) {
-            value = this.getLastNode();
-            this.getScope().removeLastChild();
-        }
+    public setAttribute(name: string, value: string | Node) {
         this.getScope().setAttribute(name, value);
+    }
+
+    /**
+     * @param name
+     */
+    public setAttributeFromLastChild(name: string) {
+        const value = this.getLastNode();
+
+        if (value) {
+            this.getScope().removeLastChild();
+            this.setAttribute(name, value);
+        }
     }
 
     /**
@@ -157,6 +185,9 @@ export default class Parser {
      * @param offset
      */
     public advance(offset: number = 1) {
+        if (this.tokenStream) {
+            this.tokenStream.advance(offset);
+        }
         this.cursor = this.cursor + offset;
     }
 
@@ -169,7 +200,7 @@ export default class Parser {
         if (! token) {
             return false;
         }
-        return (token && token.type === type);
+        return token.type === type;
     }
 
     /**
@@ -183,7 +214,6 @@ export default class Parser {
             return false;
         }
         return (
-            token &&
             token.type === type &&
             token.value === value
         );
@@ -388,23 +418,9 @@ export default class Parser {
     }
 
     /**
-     * Wrap the last inserted Node with another Node, the scope will be the wrapping Node
-     * @param node
-     */
-    public wrap(node: Node) {
-        const last = this.getLastNode();
-        this.getScope().removeLastChild();
-
-        this.insert(node);
-        this.traverseUp();
-
-        this.insert(last);
-    }
-
-    /**
      * Get the built Abstract Syntax Tree (AST)
      */
-    public getAst(): AstNode {
+    public getAst(): AST {
         return this.ast;
     }
 }

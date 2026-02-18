@@ -16,7 +16,7 @@ export default class StyleBlock extends Node {
         if (parser.accept(TokenType.RAW_BLOCK)) {
             parser.insert(new StyleBlock());
             parser.in();
-            parser.setAttribute('contents', parser.getCurrentValue());
+            parser.setAttribute('contents', parser.getCurrentValue() || '');
             parser.advance();
             parser.out();
 
@@ -27,10 +27,12 @@ export default class StyleBlock extends Node {
     }
 
     compile(compiler: Compiler) {
+        /*
         const contents = this.getAttribute('contents');
 
         if (typeof contents === 'string') {
             compiler.writeLine('\t'+contents.trim());
         }
+         */
     }
 }

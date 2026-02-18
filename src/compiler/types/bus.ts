@@ -1,14 +1,14 @@
 import Symbol from '../binder/Symbol';
 import { ResolvedType } from './analyzer';
-import AstNode from '../parser/AstNode';
+import AST from '../parser/AST';
 import TypeTable from '../analyzer/TypeTable';
 import TokenStream from '../tokenization/TokenStream';
 
 export interface TEventMap {
     startTokenization: { code: string }
     startParsing: { tokenStream: TokenStream }
-    startTypeResolving: { ast: AstNode }
-    startTypeChecking: { ast: AstNode, typeTable: TypeTable }
+    startTypeResolving: { ast: AST }
+    startTypeChecking: { ast: AST, typeTable: TypeTable }
     symbolBind: { name: string, symbol: Symbol }
     typeDefine: { symbol: Symbol, type: ResolvedType }
 }
