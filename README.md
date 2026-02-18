@@ -14,7 +14,7 @@ https://dev.to/reinvanoyen/experimenting-with-the-idea-of-a-typescript-for-css-3
 * Seperate Parser and TokenStream walking
 * Always register span on AST Node
 * Always give Span to diagnostics Reporter
-* Implement TypeChecker: followRefs + isAssignable, then wire it into VariantDeclaration.check()
+* Implement TypeChecker: followRefs + isAssignable
 
 ### Confirmed syntax (so far):
 ```
