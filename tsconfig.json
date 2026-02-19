@@ -6,6 +6,8 @@
     "outDir": "dist",
     "declaration": true,
     "esModuleInterop": true,
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
   }
 }

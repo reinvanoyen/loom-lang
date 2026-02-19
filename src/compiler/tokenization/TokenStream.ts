@@ -1,5 +1,8 @@
-import { Token } from '../types/tokenization';
+import { Token, TokenType } from '../types/tokenization';
 import chalk from 'chalk';
+import { Nullable } from '@/compiler/types/nullable';
+
+export type SyncToken = { type: TokenType; value?: string };
 
 export default class TokenStream {
     /**
@@ -23,8 +26,8 @@ export default class TokenStream {
     /**
      * @param offset
      */
-    public peek(offset = 0): Token {
-        return this.tokens[this.cursor + offset];
+    public peek(offset = 0): Nullable<Token> {
+        return this.tokens[this.cursor + offset] || null;
     }
 
     /**
@@ -41,23 +44,31 @@ export default class TokenStream {
         return this.cursor;
     }
 
-    /*
-    * peek(n = 0): Token | EOF
-    isEOF(): boolean
-    next(): Token | EOF (consume current + advance)
-    consume(type?, value?): Token | null
-    match(type?, value?, n=0): boolean
-    mark(): number
-    reset(mark: number): void
-    slice(fromMark, toMark) (optional, for error messages/debug)
-    position() / index() (optional)
-    * */
-
     /**
      * @param token
      */
     public add(token: Token) {
         this.tokens.push(token);
+    }
+
+    private is(tok: Nullable<Token>, t: SyncToken): boolean {
+        return !!tok && tok.type === t.type && (t.value === undefined || tok.value === t.value);
+    }
+
+    /**
+     *
+     * @param stoppers
+     * @param opts
+     */
+    public syncTo(stoppers: SyncToken[], opts?: { consumeStopper?: boolean }) {
+        while (!this.isEOF()) {
+            const tok = this.peek();
+            if (stoppers.some(s => this.is(tok, s))) {
+                if (opts?.consumeStopper) this.advance();
+                return;
+            }
+            this.advance();
+        }
     }
 
     /**

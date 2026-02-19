@@ -1,6 +1,5 @@
 import { Nullable } from '../types/nullable';
 import { AttributeValue } from '../types/attribute';
-import Parser from './Parser';
 import Symbol from '../binder/Symbol';
 import Compiler from '../Compiler';
 import Binder from '../binder/Binder';
@@ -111,14 +110,6 @@ export default class Node {
 
     /**
      *
-     * @param value
-     */
-    setValue(value: string) {
-        this.value = value;
-    }
-
-    /**
-     *
      * @param node
      */
     addChild(node: Node) {
@@ -168,14 +159,6 @@ export default class Node {
      */
     removeLastChild() {
         this.children.pop();
-    }
-
-    /**
-     *
-     * @param _parser
-     */
-    parse(_parser: Parser): boolean {
-        return false;
     }
 
     /**

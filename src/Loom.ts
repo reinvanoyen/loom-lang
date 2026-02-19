@@ -11,6 +11,7 @@ import EventBus from './core/bus/EventBus';
 import { TEventMap } from './compiler/types/bus';
 import ASTBuilder from './compiler/parser/ASTBuilder';
 import IdAllocator from './core/allocators/IdAllocator';
+import AST from '@/compiler/parser/AST';
 
 // todo this should become the compiler pipeline...
 export default class Loom {
@@ -29,14 +30,14 @@ export default class Loom {
         const diagnostics = new Reporter();
 
         // Tokenize the code
-        const tokens = (new Lexer(eventBus, diagnostics)).tokenize(code);
+        const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(code);
         console.log(chalk.bgGreenBright(' === TOKENS === '));
-        console.log(chalk.bgCyan('TOKEN COUNT', tokens.getLength()));
-        console.log(tokens.print());
+        console.log(chalk.bgCyan('TOKEN COUNT', tokenStream.getLength()));
+        console.log(tokenStream.print());
 
         // Parse the tokens into an AST
-        const builder = new ASTBuilder(new IdAllocator());
-        const ast = (new Parser(builder, eventBus, diagnostics).parse(tokens));
+        const builder = new ASTBuilder(new AST(), new IdAllocator());
+        const ast = (new Parser(tokenStream, builder, eventBus, diagnostics).parse());
         console.log(chalk.bgGreenBright(' === AST === '));
         console.log(ast.print());
 

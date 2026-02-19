@@ -1,33 +1,10 @@
 import Node from '../Node';
-import Parser from '../Parser';
-import { TokenType } from '../../types/tokenization';
 import Compiler from '../../Compiler';
 
 export default class SlotDeclaration extends Node {
 
     getName(): string {
         return 'SLOT_DECL';
-    }
-
-    /**
-     * @param parser
-     */
-    static parse(parser: Parser): boolean {
-
-        if (parser.skipWithValue(TokenType.IDENT,'slot')) {
-            if (parser.expect(TokenType.IDENT)) {
-                parser.insert(new SlotDeclaration(parser.getCurrentValue()));
-                parser.advance();
-
-                if (parser.expectWithValue(TokenType.SYMBOL, ';')) {
-                    parser.advance();
-                }
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
     compile(compiler: Compiler) {
