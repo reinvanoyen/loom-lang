@@ -1,4 +1,4 @@
-namespace ui;
+namespace aui;
 
 import 'Button.loom';
 import 'types.loom';
@@ -26,9 +26,7 @@ class Button {
 }
 
 class Link extends Button {
-	{%
-		text-decoration: underline;
-	%}
+
 }
 
 class Label {{%

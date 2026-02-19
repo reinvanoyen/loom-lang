@@ -5,7 +5,7 @@ module.exports = {
     testMatch: ['**/*.test.ts'],
     moduleFileExtensions: ['ts', 'js'],
     moduleNameMapper: {
-        '^chalk$': '<rootDir>/__mocks__/chalk.js',
+        '^chalk$': '<rootDir>/test/mocks/chalk.js',
         '^@/(.*)$': '<rootDir>/src/$1',
     },
 };
