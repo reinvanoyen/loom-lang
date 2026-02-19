@@ -1,6 +1,4 @@
 import Node from '../Node';
-import Parser from '../Parser';
-import { TokenType } from '../../types/tokenization';
 import Type from './Type';
 import Compiler from '../../Compiler';
 import Binder from '../../binder/Binder';
@@ -11,33 +9,6 @@ export default class TypeDeclaration extends Node {
 
     getName(): string {
         return 'TYPE_DECL';
-    }
-
-    static parse(parser: Parser): boolean {
-
-        if (parser.skipWithValue(TokenType.IDENT, 'type')) {
-            if (parser.expect(TokenType.IDENT)) {
-                parser.insert(new TypeDeclaration(parser.getCurrentValue()));
-                parser.in();
-                parser.advance();
-
-                if (parser.expectWithValue(TokenType.SYMBOL, '=')) {
-                    parser.advance();
-                }
-
-                Type.parse(parser);
-
-                parser.out();
-
-                if(parser.expectWithValue(TokenType.SYMBOL, ';')) {
-                    parser.advance();
-                }
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
     bind(binder: Binder) {

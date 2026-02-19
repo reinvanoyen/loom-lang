@@ -1,36 +1,45 @@
 import { Token, TokenType } from '../types/tokenization';
 import AST from './AST';
-import Node from './Node';
 import { Nullable } from '../types/nullable';
 import Reporter from '../diagnostics/Reporter';
 import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
-import TokenStream from '../tokenization/TokenStream';
+import TokenStream, { SyncToken } from '../tokenization/TokenStream';
 import ASTBuilder from './ASTBuilder';
+import Namespace from '@/compiler/parser/nodes/Namespace';
+import ImportStatement from '@/compiler/parser/nodes/ImportStatement';
+import Type from '@/compiler/parser/nodes/Type';
+import TypeDeclaration from '@/compiler/parser/nodes/TypeDeclaration';
+import VariantDeclaration from '@/compiler/parser/nodes/VariantDeclaration';
+import SlotDeclaration from '@/compiler/parser/nodes/SlotDeclaration';
+import StyleBlock from '@/compiler/parser/nodes/StyleBlock';
+import Class from '@/compiler/parser/nodes/Class';
+import IdentifierType from '@/compiler/parser/nodes/IdentifierType';
+import StringType from '@/compiler/parser/nodes/StringType';
 
 export default class Parser {
-    /**
-     * The current id
-     * @private
-     */
-    private currentId: number = 0;
+
+    private readonly TOP_LEVEL_SYNC: SyncToken[] = [
+        { type: TokenType.IDENT, value: 'namespace' },
+        { type: TokenType.IDENT, value: 'import' },
+        { type: TokenType.IDENT, value: 'type' },
+        { type: TokenType.IDENT, value: 'class' },
+        { type: TokenType.SYMBOL, value: ';' },
+        { type: TokenType.SYMBOL, value: '}' },
+    ];
+
+    private readonly CLASS_MEMBER_SYNC: SyncToken[] = [
+        { type: TokenType.SYMBOL, value: ';' },
+        { type: TokenType.SYMBOL, value: '}' },
+        { type: TokenType.SYMBOL, value: '@' }, // variant starts
+        { type: TokenType.IDENT, value: 'slot' }, // slot starts
+        { type: TokenType.RAW_BLOCK }, // style block
+    ];
 
     /**
      * @private
      */
-    private tokenStream: Nullable<TokenStream> = null;
-
-    /**
-     * The Abstract Syntax Tree (AST) currently being build (output)
-     * @private
-     */
-    private ast: AST = new AST();
-
-    /**
-     * The current scope, which is the Node in which we're currently parser
-     * @private
-     */
-    private scope: Node = this.ast;
+    private readonly tokenStream: TokenStream;
 
     /**
      * @private
@@ -48,264 +57,332 @@ export default class Parser {
     private reporter: Reporter;
 
     /**
+     * @param tokenStream
      * @param builder
      * @param events
      * @param reporter
      */
-    constructor(builder: ASTBuilder, events: EventBus<TEventMap>, reporter: Reporter) {
+    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: Reporter) {
+        this.tokenStream = tokenStream;
         this.builder = builder;
         this.events = events;
         this.reporter = reporter;
     }
 
     /**
-     *
+     * Parse the TokenStream into an Abstract Syntax Tree (AST)
      */
-    reset() {
-        this.currentId = 0;
-        this.ast = new AST();
-        this.scope = this.ast;
-    }
-
-    /**
-     * Parse a TokenStream into an Abstract Syntax Tree (AST)
-     * @param tokenStream
-     */
-    public parse(tokenStream: TokenStream): AST {
-
-        this.reset();
-
-        this.events.emit('startParsing', { tokenStream });
-        this.tokenStream = tokenStream;
+    public parse(): AST {
+        this.events.emit('startParsing', { tokenStream: this.tokenStream });
         this.parseAll();
+        this.events.emit('endParsing', { tokenStream: this.tokenStream });
 
-        return this.ast;
+        return this.builder.getAst();
     }
 
     /**
      * Parse all tokens in the TokenStream, starting from the cursor position
      */
     private parseAll() {
-        if (! this.tokenStream) {
-            return;
-        }
-
         while (! this.tokenStream.isEOF()) {
             const before = this.tokenStream.getCursor();
 
-            const parsed = AST.parse(this);
+            while (
+                this.parseNamespaceStatement() ||
+                this.parseImportStatement() ||
+                this.parseTypeDeclaration() ||
+                this.parseClass()
+            );
 
-            // If nothing parsed OR cursor didn't move, consume one token to avoid infinite loops.
-            if (!parsed || this.tokenStream.getCursor() === before) {
-                // todo - implement synchronize here, parser explodes with errors here
-                const tok = this.getCurrentToken();
-                this.reporter.report({
-                    severity: 'error',
-                    message: `Unexpected token '${tok?.value ?? '<eof>'}'`,
-                });
-                this.advance();
+            // If cursor didn't move, report & sync
+            if (this.tokenStream.getCursor() === before) {
+                const tok = this.tokenStream.peek();
+
+                if (tok) {
+                    this.reporter.error({
+                        message: `Unexpected token '${tok?.value ?? '<eof>'}'`,
+                        span: {
+                            start: tok.startPosition,
+                            end: tok.endPosition,
+                        }
+                    });
+                }
+
+                // Skip until we can plausibly start again
+                this.tokenStream.syncTo(this.TOP_LEVEL_SYNC);
+
+                // If we stopped on ';' consume it so we don’t stall on it
+                this.eat(TokenType.SYMBOL, ';');
             }
         }
     }
 
     /**
-     * Get the Token at the cursor position
+     * @private
      */
-    public getCurrentToken(): Nullable<Token> {
-        if (! this.tokenStream) {
-            return null;
+    private parseClass() {
+
+        if (this.eat(TokenType.IDENT, 'class')) {
+
+            const className = this.consume('class name', TokenType.IDENT);
+
+            if (! className) {
+                // todo (sync?)
+                return true;
+            }
+
+            this.builder.insert(new Class(className.value));
+            this.builder.down();
+
+            if (this.eat(TokenType.IDENT, 'extends')) {
+                const parentClassName = this.consume('parent class name', TokenType.IDENT);
+
+                if (parentClassName) {
+                    this.builder.setAttribute('parent', parentClassName.value);
+                }
+            }
+
+            const open = this.consume('opening curly brace', TokenType.SYMBOL, '{');
+
+            if (! open) {
+                // todo
+            }
+
+            // Parse class body
+            while(
+                this.parseVariantDeclaration() ||
+                this.parseSlotDeclaration() ||
+                this.parseStyleBlock()
+            );
+
+            this.consume('closing curly brace', TokenType.SYMBOL, '}');
+            this.builder.up();
+
+            return true;
         }
 
-        return this.tokenStream.peek();
+        return false;
+    }
+
+    private parseStyleBlock() {
+
+        const contents = this.eat(TokenType.RAW_BLOCK);
+
+        if (contents) {
+            this.builder.insert(new StyleBlock());
+            this.builder.down();
+            this.builder.setAttribute('contents', contents.value);
+            this.builder.up();
+            return true;
+        }
+
+        return false;
+    }
+
+    private parseSlotDeclaration() {
+        if (this.eat(TokenType.IDENT,'slot')) {
+
+            const name = this.consume('slot name', TokenType.IDENT);
+
+            if (name) {
+                this.builder.insert(new SlotDeclaration(name.value));
+            }
+
+            this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private parseVariantDeclaration() {
+
+        if (this.eat(TokenType.SYMBOL,'@')) {
+
+            const name = this.consume('variant name', TokenType.IDENT);
+
+            if (name) {
+                this.builder.insert(new VariantDeclaration(name.value));
+                this.builder.down();
+
+                this.consume(':', TokenType.SYMBOL, ':');
+
+                if (this.parseType()) {
+                    this.builder.setAttributeFromLastChild('type');
+                } else {
+                    // todo
+                }
+
+                // Parse default value
+                if (this.eat(TokenType.SYMBOL, '=')) {
+
+                    const defaultValue = this.consume('default value', TokenType.STRING);
+
+                    if (defaultValue) {
+                        this.builder.setAttribute('default', defaultValue.value);
+                    }
+                }
+
+                this.builder.up();
+                this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private parseNamespaceStatement() {
+        if (this.eat(TokenType.IDENT, 'namespace')) {
+            const namespace = this.consume('namespace', TokenType.IDENT);
+
+            if (namespace) {
+                this.builder.insert(new Namespace(namespace.value));
+            }
+
+            this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+            return true;
+        }
+
+        return false;
+    }
+
+    private parseImportStatement() {
+        if (this.eat(TokenType.IDENT, 'import')) {
+
+            const path = this.consume('import path', TokenType.STRING);
+
+            if (path) {
+                this.builder.insert(new ImportStatement(path.value));
+            }
+
+            this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Get the Token at the offset of the cursor position
-     * @param offset
+     * @private
      */
-    private getOffsetToken(offset: number): Nullable<Token> {
-        if (! this.tokenStream) {
-            return null;
+    private parseTypeDeclaration() {
+        if (this.eat(TokenType.IDENT, 'type')) {
+
+            const typeName = this.consume('type name', TokenType.IDENT);
+
+            if (typeName) {
+                this.builder.insert(new TypeDeclaration(typeName.value));
+                this.builder.down();
+                this.consume('=', TokenType.SYMBOL, '=');
+                this.parseType();
+                this.builder.up();
+                this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+            }
+            
+            return true;
         }
 
+        return false;
+    }
+
+    private parseType() {
+        if (this.expectOneOf([TokenType.IDENT, TokenType.STRING])) {
+            this.builder.insert(new Type());
+            this.builder.down();
+            this.parseUnionType();
+            this.builder.up();
+            return true;
+        }
+
+        return false;
+    }
+
+    private parseTypeValue() {
+
+        const ident = this.eat(TokenType.IDENT);
+
+        if (ident) {
+            this.builder.insert(new IdentifierType(ident.value))
+            return true;
+        }
+
+        const string = this.eat(TokenType.STRING);
+
+        if (string) {
+            this.builder.insert(new StringType(string.value))
+            return true;
+        }
+
+        return false;
+    }
+
+    private parseUnionType() {
+        if (this.parseTypeValue()) {
+            if (this.eat(TokenType.SYMBOL, '|')) {
+                this.parseUnionType();
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Look at token. Don’t move.
+     * @param offset
+     */
+    peek(offset = 0): Nullable<Token> {
         return this.tokenStream.peek(offset);
     }
 
     /**
-     * Set a value as attribute to the current scope Node
-     * If no explicit value was given, the last inserted Node will be used as value
-     * @param name
-     * @param value
-     */
-    public setAttribute(name: string, value: string | Node) {
-        this.getScope().setAttribute(name, value);
-    }
-
-    /**
-     * @param name
-     */
-    public setAttributeFromLastChild(name: string) {
-        const value = this.getLastNode();
-
-        if (value) {
-            this.getScope().removeLastChild();
-            this.setAttribute(name, value);
-        }
-    }
-
-    /**
-     * Get the value of the current token
-     */
-    public getCurrentValue(): Nullable<string> {
-        const token = this.getCurrentToken();
-
-        if (! token) {
-            return null;
-        }
-
-        return token.value;
-    }
-
-    /**
-     * Advance the cursor position by a certain offset
-     * @param offset
-     */
-    public advance(offset: number = 1) {
-        if (this.tokenStream) {
-            this.tokenStream.advance(offset);
-        }
-    }
-
-    /**
-     * Accept a token of the given type at this cursor position
-     * @param type
-     */
-    public accept(type: TokenType): boolean {
-        const token = this.getCurrentToken();
-        if (! token) {
-            return false;
-        }
-        return token.type === type;
-    }
-
-    /**
-     * Accept a token of the given type and with given value at this cursor position
+     * If matches → advance and return token
+     * If not → return null
+     * No error.
      * @param type
      * @param value
      */
-    public acceptWithValue(type: TokenType, value: string): boolean {
-        const token = this.getCurrentToken();
-        if (! token) {
-            return false;
+    eat(type: TokenType, value?: string): Nullable<Token> {
+        const tok = this.peek();
+        if (!tok) return null;
+
+        if (tok.type === type && (value === undefined || tok.value === value)) {
+            this.tokenStream.advance();
+            return tok;
         }
-        return (
-            token.type === type &&
-            token.value === value
-        );
+
+        return null;
     }
 
     /**
-     * Accept a token of the given type at the given offset of this cursor position
-     * @param type
-     * @param offset
-     */
-    public acceptAt(type: TokenType, offset: number): boolean {
-        const token = this.getOffsetToken(offset);
-        if (! token) {
-            return false;
-        }
-        return (token && token.type === type);
-    }
-
-    /**
-     * Accept a token of the given type and with given value at the given offset of this cursor position
-     * @param type
-     * @param offset
-     * @param value
-     */
-    public acceptAtWithValue(type: TokenType, offset: number, value: string): boolean {
-        const token = this.getOffsetToken(offset);
-        if (! token) {
-            return false;
-        }
-        return (
-            token &&
-            token.type === type &&
-            token.value === value
-        );
-    }
-
-    /**
-     * @param types
-     */
-    public acceptOneOf(types: TokenType[]): boolean {
-        const token = this.getCurrentToken();
-        if (! token) {
-            return false;
-        }
-        return (token && types.includes(token.type));
-    }
-
-    /**
-     * Skip a token of the given type at this cursor position
-     * @param type
-     */
-    public skip(type: TokenType): boolean {
-        if (this.accept(type)) {
-            this.advance();
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Skip the token at this cursor position if it's of the given type and has the given value
+     * If matches → advance and return token
+     * If not → report error (using ctx for message)
+     * @param ctx
      * @param type
      * @param value
      */
-    public skipWithValue(type: TokenType, value: string): boolean {
-        if (this.acceptWithValue(type, value)) {
-            this.advance();
-            return true;
-        }
-        return false;
-    }
+    consume(ctx: string, type: TokenType, value?: string): Nullable<Token> {
+        const tok = this.peek();
 
-    /**
-     * Expect a token of the given type at this cursor position
-     * @param type
-     */
-    public expect(type: TokenType): boolean {
-        if (this.accept(type)) {
-            return true;
+        if (tok && tok.type === type && (value === undefined || tok.value === value)) {
+            this.tokenStream.advance();
+            return tok;
         }
 
-        const token = this.getCurrentToken();
-        this.reporter.report({
-            severity: 'error',
-            message: `Expected ${type}, got ${token ? token.type : '?'}`
-        });
-        this.advance();
-        return false;
-    }
-
-    /**
-     * Expect a token of the given type with give value at this cursor position
-     * @param type
-     * @param value
-     */
-    public expectWithValue(type: TokenType, value: string): boolean {
-        if (this.acceptWithValue(type, value)) {
-            return true;
+        if (tok) {
+            this.reporter.error({
+                message: `Expected ${ctx}, got ${tok.type}`,
+                span: {
+                    start: tok.startPosition,
+                    end: tok.endPosition,
+                }
+            });
         }
 
-        const token = this.getCurrentToken();
-        this.reporter.report({
-            severity: 'error',
-            message: `Unexpected token, expected ${type} with value ${value} got ${token ? token.type : '?'} ${token ? token.value : '?'}`
-        });
-        this.advance();
-        return false;
+        return null; // caller decides how to recover
     }
 
     /**
@@ -313,84 +390,25 @@ export default class Parser {
      * @param types
      */
     public expectOneOf(types: TokenType[]): boolean {
-        if (this.acceptOneOf(types)) {
+        const token = this.tokenStream.peek();
+        if (! token) {
+            return false;
+        }
+
+        if (token && types.includes(token.type)) {
             return true;
         }
 
-        this.reporter.report({
-            severity: 'error',
-            message: `Unexpected token, expected one of: ${types.join(', ')}`
-        });
-        this.advance();
-        return false;
-    }
-
-    /**
-     * Point the scope to the last inserted Node
-     */
-    public in() {
-        this.setScope(this.getLastNode());
-    }
-
-    /**
-     * Point the scope to the parent of the current scope
-     */
-    public out() {
-        const scope = this.getScope();
-        const parent = scope.getParent();
-
-        if (! parent) {
-            return;
+        if (token) {
+            this.reporter.error({
+                message: `Unexpected token, expected one of: ${types.join(', ')}`,
+                span: {
+                    start: token.startPosition,
+                    end: token.endPosition,
+                }
+            });
         }
-
-        this.setScope(parent);
-    }
-
-    /**
-     * Get the current scope Node
-     */
-    public getScope(): Node {
-        return this.scope;
-    }
-
-    /**
-     * Get the last inserted Node
-     */
-    public getLastNode(): Node {
-        return this.scope.getChildren()[this.scope.getChildren().length-1];
-    }
-
-    /**
-     * Insert a Node into the current scope
-     * @param node
-     */
-    public insert(node: Node) {
-        this.assignNewId(node);
-        node.setParent(this.scope);
-        this.scope.addChild(node);
-    }
-
-    /**
-     * @param node
-     * @private
-     */
-    private assignNewId(node: Node) {
-        this.currentId++;
-        node.setId(this.currentId);
-    }
-
-    /**
-     * Set the current scope
-     * @param node
-     */
-    private setScope(node: Node) {
-        this.scope = node;
-    }
-
-    /**
-     * Get the built Abstract Syntax Tree (AST)
-     */
-    public getAst(): AST {
-        return this.ast;
+        // todo ??
+        return false;
     }
 }

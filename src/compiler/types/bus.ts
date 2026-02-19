@@ -7,6 +7,7 @@ import TokenStream from '../tokenization/TokenStream';
 export interface TEventMap {
     startTokenization: { code: string }
     startParsing: { tokenStream: TokenStream }
+    endParsing: { tokenStream: TokenStream }
     startTypeResolving: { ast: AST }
     startTypeChecking: { ast: AST, typeTable: TypeTable }
     symbolBind: { name: string, symbol: Symbol }

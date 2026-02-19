@@ -23,10 +23,8 @@ export enum TokenType {
 export type Token = {
     value: string;
     type: TokenType;
-    line?: number;
-    position?: number;
-    startPosition?: Position;
-    endPosition?: Position;
+    startPosition: Position;
+    endPosition: Position;
 }
 
 export type Position = {
