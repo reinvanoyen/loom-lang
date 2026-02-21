@@ -63,6 +63,9 @@ export default class TokenStream {
     public syncTo(stoppers: SyncToken[], opts?: { consumeStopper?: boolean }) {
         while (!this.isEOF()) {
             const tok = this.peek();
+            if (!tok) {
+                return;
+            }
             if (stoppers.some(s => this.is(tok, s))) {
                 if (opts?.consumeStopper) this.advance();
                 return;
@@ -91,16 +94,17 @@ export default class TokenStream {
     public print() {
         const output: string[] = [];
         this.tokens.forEach(token => {
+
             if (token.type === 'Symbol') {
-                output.push(chalk.grey(`${token.value}`));
+                output.push(chalk.grey(`${token.type}(${token.value})`));
             }
 
             if (token.type === 'Ident') {
-                output.push(chalk.yellow(`${token.value}`));
+                output.push(chalk.yellow(`${token.type}(${token.value})`));
             }
 
             if (token.type === 'String') {
-                output.push(chalk.green(`${token.value}`));
+                output.push(chalk.green(`${token.type}(${token.value})`));
             }
 
             if (token.type === 'Newline') {
@@ -108,18 +112,18 @@ export default class TokenStream {
             }
 
             if (token.type === 'Number') {
-                output.push(chalk.blue(`${token.value}`));
+                output.push(chalk.blue(`${token.type}(${token.value})`));
             }
 
             if (token.type === 'RawBlock') {
-                output.push(chalk.bgCyan(`${token.value}`));
+                output.push(chalk.bgCyan(`${token.type}(${token.value})`));
             }
 
             if (token.type === 'Unknown') {
-                output.push(chalk.red(`${token.value}`));
+                output.push(chalk.red(`${token.type}(${token.value})`));
             }
         });
 
-        return output.join(' ');
+        console.log(output.join('\n'));
     }
 }

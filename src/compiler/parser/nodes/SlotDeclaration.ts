@@ -4,7 +4,7 @@ import Compiler from '../../Compiler';
 export default class SlotDeclaration extends Node {
 
     getName(): string {
-        return 'SLOT_DECL';
+        return 'SLT_DECL';
     }
 
     compile(compiler: Compiler) {

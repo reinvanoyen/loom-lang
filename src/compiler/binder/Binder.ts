@@ -2,7 +2,7 @@ import Node from '../parser/Node';
 import Symbol from './Symbol';
 import SymbolTable from './SymbolTable';
 import { Namespace } from '../types/namespace';
-import Reporter from '../diagnostics/Reporter';
+import Reporter, { MessageCode } from '../diagnostics/Reporter';
 import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 
@@ -59,8 +59,8 @@ export default class Binder {
      */
     add(name: string, symbol: Symbol) {
         if (this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-            this.reporter.report({
-                severity: 'error',
+            this.reporter.error({
+                code: MessageCode.E_DUPLICATE_SYMBOL,
                 message: `Binding error: ${name} already exists`
             });
             return;
@@ -74,8 +74,8 @@ export default class Binder {
      */
     get(name: string) {
         if (!this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-            this.reporter.report({
-                severity: 'error',
+            this.reporter.error({
+                code: MessageCode.E_UNDEFINED_SYMBOL,
                 message: `Binding error: couldn't get symbol with name ${name}`
             });
         }
@@ -88,8 +88,8 @@ export default class Binder {
      */
     addType(name: string, symbol: Symbol) {
         if (this.symbolTable.hasType(name)) {
-            this.reporter.report({
-                severity: 'error',
+            this.reporter.error({
+                code: MessageCode.E_DUPLICATE_SYMBOL,
                 message: `Binding error: type '${name}' already exists`
             });
             return;

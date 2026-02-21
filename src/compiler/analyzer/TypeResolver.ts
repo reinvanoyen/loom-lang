@@ -5,7 +5,7 @@ import { ResolvedType } from '../types/analyzer';
 import IdentifierType from '../parser/nodes/IdentifierType';
 import StringType from '../parser/nodes/StringType';
 import Symbol from '../binder/Symbol';
-import Reporter from '../diagnostics/Reporter';
+import Reporter, { MessageCode } from '../diagnostics/Reporter';
 import { Nullable } from '../types/nullable';
 import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
@@ -27,8 +27,10 @@ export default class TypeResolver {
      * @private
      */
     private reporter: Reporter;
-    
+
     /**
+     * @param events
+     * @param reporter
      * @param typeTable
      */
     constructor(events: EventBus<TEventMap>, reporter: Reporter, typeTable: TypeTable) {
@@ -46,8 +48,8 @@ export default class TypeResolver {
         const symbolId = symbol.getId();
 
         if (! symbolId) {
-            this.reporter.report({
-                severity: 'error',
+            this.reporter.error({
+                code: MessageCode.E_UNBOUND_SYMBOL,
                 message: 'Symbol has no id'
             });
             return;
@@ -75,8 +77,8 @@ export default class TypeResolver {
             return this.resolveTypeNodeChild(children[0] as TypeChildNode);
         }
 
-        this.reporter.report({
-            severity: 'error',
+        this.reporter.error({
+            code: MessageCode.E_UNKNOWN,
             message: 'TypeResolver error, no types in type?',
         });
 
@@ -100,8 +102,8 @@ export default class TypeResolver {
             const symbol = typeChild.getSymbol();
 
             if (! symbol) {
-                this.reporter.report({
-                    severity: 'error',
+                this.reporter.error({
+                    code: MessageCode.E_UNBOUND_SYMBOL,
                     message: `Unbound type identifier '${typeChild.getValue()}'`,
                 });
                 return null;
@@ -111,8 +113,8 @@ export default class TypeResolver {
 
             if (!symbolId) {
                 console.log(symbol);
-                this.reporter.report({
-                    severity: 'error',
+                this.reporter.error({
+                    code: MessageCode.E_UNBOUND_SYMBOL,
                     message: 'Symbol has no id',
                 });
                 return null;
@@ -124,16 +126,19 @@ export default class TypeResolver {
         if (typeChild instanceof StringType) {
             const value = typeChild.getValue();
 
-            if (value) {
-                return { kind: 'literal', value };
+            if (value === null) {
+                this.reporter.error({
+                    code: MessageCode.E_STRING_TYPE_VALUE,
+                    message: 'String type has no value',
+                });
+                return null;
             }
 
-            // todo - we might want to report this
-            return null;
+            return { kind: 'literal', value };
         }
 
-        this.reporter.report({
-            severity: 'error',
+        this.reporter.error({
+            code: MessageCode.E_UNKNOWN,
             message: 'Unknown type node',
         });
 

@@ -1,8 +1,30 @@
 import { Position } from '../types/tokenization';
 import chalk from 'chalk';
 
+export enum MessageCode {
+
+    E_UNKNOWN,
+
+    E_TOKEN_NOT_CLOSED,
+    E_UNEXPECTED_TOKEN,
+
+    E_MISSING_TYPE,
+
+    E_DUPLICATE_SYMBOL,
+    E_UNDEFINED_SYMBOL,
+    E_UNBOUND_SYMBOL,
+
+    E_STRING_TYPE_VALUE,
+
+    E_SLOT_INVALID_CONTEXT,
+    E_SLOT_AUGMENT_FORBIDDEN,
+    E_SLOT_DUPLICATE,
+    E_SLOT_UNKNOWN,
+}
+
 type DiagnosticMessage = {
     severity: 'info' | 'warning' | 'error';
+    code: MessageCode,
     message: string;
     nodeId?: number;
     span?: { start: Position, end: Position };
@@ -46,19 +68,19 @@ export default class Reporter {
         this.messages.forEach(message => {
             const startPos = `${message.span?.start.line}:${message.span?.start.column}`;
             const endPos = `${message.span?.end.line}:${message.span?.end.column}`;
-            const formatted = `${message.message} ${startPos} -> ${endPos}`;
+            const formatted = `${MessageCode[message.code]}: ${message.message} ${startPos} -> ${endPos}`;
 
             if (message.severity === 'error') {
-                console.log(chalk.red(`E ${formatted}`));
+                console.log(chalk.red(`${formatted}`));
             }
 
             if (message.severity === 'warning') {
-                console.log(chalk.yellow(`W ${formatted}`));
+                console.log(chalk.yellow(`${formatted}`));
             }
 
 
             if (message.severity === 'info') {
-                console.log(chalk.grey(`I ${formatted}`));
+                console.log(chalk.grey(`${formatted}`));
             }
         });
     }

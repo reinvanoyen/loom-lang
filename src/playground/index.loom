@@ -1,17 +1,10 @@
 namespace ui;
 
-test
-
-import 'Button.loom';
 import 'types.loom';
-
-testkdkjdkj
 
 type Size = 'small' | 'medium' | 'small';
 type ExtraSize = Size | 'huge';
 type Intent = 'danger';
-
-bla
 
 type Word = string;
 
@@ -29,6 +22,10 @@ class Button {
 		height: 90px;
 		animation: heartbeat 1s infinite;
 	%}
+}
+
+augment class Button {
+
 }
 
 class Link extends Button {

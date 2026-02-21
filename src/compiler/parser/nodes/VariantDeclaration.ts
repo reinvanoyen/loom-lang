@@ -5,7 +5,7 @@ import TypeTable from '../../analyzer/TypeTable';
 export default class VariantDeclaration extends Node {
 
     getName(): string {
-        return 'VARIANT_DECL';
+        return 'VAR_DECL';
     }
 
     check(typeChecker: TypeChecker, typeTable: TypeTable) {

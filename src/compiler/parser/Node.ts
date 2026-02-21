@@ -187,13 +187,17 @@ export default class Node {
         });
     }
 
-    print(): string {
+    print() {
 
         const printNode = (node: Node, indentAmount: number = 0): string => {
 
             const nodeId = node.getId();
             const nodeName = `${chalk.yellow(node.getName())}`;
             const nodeValue = node.getValue();
+            const nodeSymbol = node.getSymbol();
+
+            const formattedNodeId = chalk.green((nodeId ? `${nodeId}` : '-').padEnd(4));
+            const formattednodeSymbol = chalk.grey((nodeSymbol ? `${nodeSymbol.getId()}` : 'unbnd').padEnd(6));
 
             const attributes = node.getAttributes();
             const attributesString = [];
@@ -207,7 +211,7 @@ export default class Node {
             }
 
             const tabs = indentAmount > 0 ? '   '.repeat(indentAmount - 1) + '└──' : '';
-            const output = [`${chalk.green(nodeId ? nodeId : '-')} ${chalk.grey(tabs)}${nodeName}${nodeValue ? `(${chalk.red(nodeValue)})` : ''} ${attributesString.join(' ')}`];
+            const output = [`${formattedNodeId} ${formattednodeSymbol} ${chalk.grey(tabs)}${nodeName}${nodeValue ? `(${chalk.red(nodeValue)})` : ''} ${attributesString.join(' ')}`];
 
             node.getChildren().forEach(childNode => {
                 output.push(printNode(childNode, indentAmount + 1));
@@ -216,6 +220,8 @@ export default class Node {
             return output.join('\n');
         };
 
-        return printNode(this);
+        const output = printNode(this);
+
+        console.log(output);
     }
 }

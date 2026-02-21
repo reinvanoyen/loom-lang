@@ -7,7 +7,7 @@ import TypeResolver from '../../analyzer/TypeResolver';
 export default class Class extends Node {
 
     getName(): string {
-        return 'CLASS';
+        return 'CLS';
     }
 
     bind(binder: Binder) {

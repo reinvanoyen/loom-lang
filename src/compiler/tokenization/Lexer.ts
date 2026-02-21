@@ -2,7 +2,7 @@ import grammar from './grammar';
 import { LexMode, Position, TokenType } from '../types/tokenization';
 import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
-import Reporter from '../diagnostics/Reporter';
+import Reporter, { MessageCode } from '../diagnostics/Reporter';
 import TokenStream from './TokenStream';
 
 /**
@@ -148,8 +148,8 @@ export default class Lexer {
 
     private closeMode(mode: LexMode, tokenToEmit: TokenType, warning: string) {
         if (this.mode === mode) {
-            this.reporter.report({
-                severity: 'error',
+            this.reporter.error({
+                code: MessageCode.E_TOKEN_NOT_CLOSED,
                 message: warning,
                 span: { start: { ...this.modeStartPosition }, end: { ...this.position } }
             });
