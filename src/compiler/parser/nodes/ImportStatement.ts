@@ -4,7 +4,7 @@ import Compiler from '../../Compiler';
 export default class ImportStatement extends Node {
 
     getName(): string {
-        return 'IMPORT';
+        return 'IMPRT';
     }
     
     compile(compiler: Compiler) {

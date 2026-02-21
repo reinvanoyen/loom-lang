@@ -1,27 +1,29 @@
 import Node from '../Node';
 import Binder from '../../binder/Binder';
+import Compiler from '../../Compiler';
+import TypeResolver from '../../analyzer/TypeResolver';
 
-export default class IdentifierType extends Node {
+export default class ClassAugmentation extends Node {
 
     getName(): string {
-        return 'T_IDNT';
+        return 'CLS_AUG';
     }
 
     bind(binder: Binder) {
-
+        const id = this.getId();
         const value = this.getValue();
 
-        if (! value) {
+        if (!id) {
             // todo - do we need to report this?
             return;
         }
 
-        if (value === 'string') {
+        if (!value) {
             // todo - do we need to report this?
             return;
         }
 
-        const symbol = binder.getType(value);
+        const symbol = binder.get(value);
 
         if (! symbol) {
             // todo - do we need to report this?
@@ -31,7 +33,12 @@ export default class IdentifierType extends Node {
         this.setSymbol(symbol);
     }
 
-    compile() {
-        // todo compile TypeIdentNode
+    resolve(typeResolver: TypeResolver) {
+        this.getChildren().forEach(child => {
+            child.resolve(typeResolver);
+        });
+    }
+
+    compile(compiler: Compiler) {
     }
 }

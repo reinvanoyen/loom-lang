@@ -1,7 +1,7 @@
 import { Token, TokenType } from '../types/tokenization';
 import AST from './AST';
 import { Nullable } from '../types/nullable';
-import Reporter from '../diagnostics/Reporter';
+import Reporter, { MessageCode } from '../diagnostics/Reporter';
 import EventBus from '../../core/bus/EventBus';
 import { TEventMap } from '../types/bus';
 import TokenStream, { SyncToken } from '../tokenization/TokenStream';
@@ -16,24 +16,39 @@ import StyleBlock from '@/compiler/parser/nodes/StyleBlock';
 import Class from '@/compiler/parser/nodes/Class';
 import IdentifierType from '@/compiler/parser/nodes/IdentifierType';
 import StringType from '@/compiler/parser/nodes/StringType';
+import Node from '@/compiler/parser/Node';
+import ClassAugmentation from '@/compiler/parser/nodes/ClassAugmentation';
+
+enum RecoveryContext {
+    TOP_LEVEL,
+    CLASS_MEMBER
+}
 
 export default class Parser {
 
-    private readonly TOP_LEVEL_SYNC: SyncToken[] = [
+    private readonly TOP_LEVEL_START_TOKENS: SyncToken[] = [
         { type: TokenType.IDENT, value: 'namespace' },
         { type: TokenType.IDENT, value: 'import' },
         { type: TokenType.IDENT, value: 'type' },
         { type: TokenType.IDENT, value: 'class' },
-        { type: TokenType.SYMBOL, value: ';' },
-        { type: TokenType.SYMBOL, value: '}' },
     ];
 
-    private readonly CLASS_MEMBER_SYNC: SyncToken[] = [
-        { type: TokenType.SYMBOL, value: ';' },
-        { type: TokenType.SYMBOL, value: '}' },
+    private readonly CLASS_MEMBER_RESTART: SyncToken[] = [
         { type: TokenType.SYMBOL, value: '@' }, // variant starts
         { type: TokenType.IDENT, value: 'slot' }, // slot starts
         { type: TokenType.RAW_BLOCK }, // style block
+        { type: TokenType.SYMBOL, value: '}' },
+    ];
+
+    private readonly CLASS_HEADER_RESTART: SyncToken[] = [
+        { type: TokenType.SYMBOL, value: '{' },
+        { type: TokenType.SYMBOL, value: '}' },
+        ...this.TOP_LEVEL_START_TOKENS,
+    ];
+
+    private readonly CLASS_MEMBER_STATEMENT_RESTART: SyncToken[] = [
+        { type: TokenType.SYMBOL, value: ';' },
+        ...this.CLASS_MEMBER_RESTART,
     ];
 
     /**
@@ -55,6 +70,11 @@ export default class Parser {
      * @private
      */
     private reporter: Reporter;
+
+    /**
+     * @private
+     */
+    private lastErrorIndex: number | null = null;
 
     /**
      * @param tokenStream
@@ -84,84 +104,195 @@ export default class Parser {
      * Parse all tokens in the TokenStream, starting from the cursor position
      */
     private parseAll() {
-        while (! this.tokenStream.isEOF()) {
+        while (!this.tokenStream.isEOF()) {
             const before = this.tokenStream.getCursor();
 
-            while (
-                this.parseNamespaceStatement() ||
-                this.parseImportStatement() ||
-                this.parseTypeDeclaration() ||
-                this.parseClass()
-            );
+            this.parseTopLevelDeclaration();
 
             // If cursor didn't move, report & sync
             if (this.tokenStream.getCursor() === before) {
                 const tok = this.tokenStream.peek();
 
                 if (tok) {
-                    this.reporter.error({
-                        message: `Unexpected token '${tok?.value ?? '<eof>'}'`,
-                        span: {
-                            start: tok.startPosition,
-                            end: tok.endPosition,
-                        }
-                    });
+                    this.reportError(MessageCode.E_UNEXPECTED_TOKEN, `Unexpected token '${tok?.value ?? '<eof>'}'`);
                 }
 
                 // Skip until we can plausibly start again
-                this.tokenStream.syncTo(this.TOP_LEVEL_SYNC);
+                this.recoverTopLevelStatement();
 
-                // If we stopped on ';' consume it so we don’t stall on it
-                this.eat(TokenType.SYMBOL, ';');
+                // hard progress guarantee (sync might stop on current token)
+                if (this.tokenStream.getCursor() === before) {
+                    this.tokenStream.advance();
+                }
             }
+        }
+    }
+
+    /**
+     *
+     */
+    private parseTopLevelDeclaration() {
+        const token = this.peek();
+
+        if (! token || token.type !== TokenType.IDENT) {
+            return false;
+        }
+        
+        switch (token.value) {
+            case 'namespace': return this.parseNamespaceStatement();
+            case 'import': return this.parseImportStatement();
+            case 'type': return this.parseTypeDeclaration();
+            case 'class': return this.parseClassDeclaration();
+            case 'augment': return this.parseClassAugmentation();
+            default: return false;
         }
     }
 
     /**
      * @private
      */
-    private parseClass() {
+    private parseClassDeclaration() {
+        if (!this.eat(TokenType.IDENT, 'class')) {
+            return false;
+        }
 
-        if (this.eat(TokenType.IDENT, 'class')) {
+        const className = this.expectOrRecoverToRestart(
+            'class name',
+            { type: TokenType.IDENT },
+            this.CLASS_HEADER_RESTART
+        );
 
-            const className = this.consume('class name', TokenType.IDENT);
-
-            if (! className) {
-                // todo (sync?)
-                return true;
-            }
-
-            this.builder.insert(new Class(className.value));
-            this.builder.down();
-
-            if (this.eat(TokenType.IDENT, 'extends')) {
-                const parentClassName = this.consume('parent class name', TokenType.IDENT);
-
-                if (parentClassName) {
-                    this.builder.setAttribute('parent', parentClassName.value);
-                }
-            }
-
-            const open = this.consume('opening curly brace', TokenType.SYMBOL, '{');
-
-            if (! open) {
-                // todo
-            }
-
-            // Parse class body
-            while(
-                this.parseVariantDeclaration() ||
-                this.parseSlotDeclaration() ||
-                this.parseStyleBlock()
-            );
-
-            this.consume('closing curly brace', TokenType.SYMBOL, '}');
-            this.builder.up();
-
+        if (!className) {
             return true;
         }
 
-        return false;
+        this.buildNode(new Class(className.value), () => {
+            // optional: extends Parent
+            if (this.eat(TokenType.IDENT, 'extends')) {
+                const parentClassName = this.expectOrRecoverToRestart(
+                    'parent class name',
+                    { type: TokenType.IDENT },
+                    this.CLASS_HEADER_RESTART
+                );
+
+                if (!parentClassName) {
+                    return; // buildNode will safely up()
+                }
+
+                this.builder.setAttribute('parent', parentClassName.value);
+            }
+
+            // class body open
+            const open = this.expectOrRecoverToRestart(
+                'opening curly brace',
+                { type: TokenType.SYMBOL, value: '{' },
+                this.CLASS_HEADER_RESTART
+            );
+
+            if (!open) {
+                return; // withNode will safely up()
+            }
+
+            // members
+            while (!this.tokenStream.isEOF() && !this.peekIs(TokenType.SYMBOL, '}')) {
+                const before = this.tokenStream.getCursor();
+
+                if (
+                    this.parseVariantDeclaration() ||
+                    this.parseSlotDeclaration() ||
+                    this.parseStyleBlock()
+                ) {
+                    continue;
+                }
+
+                // no member matched => error + sync within class
+                this.reportError(
+                    MessageCode.E_UNEXPECTED_TOKEN,
+                    `Unexpected token '${this.tokenStream.peek()?.value}' in class body`
+                );
+
+                this.recoverToRestart(this.CLASS_MEMBER_STATEMENT_RESTART);
+
+                if (this.peekIs(TokenType.SYMBOL, ';')) {
+                    this.tokenStream.advance();
+                    continue; // re-dispatch cleanly
+                }
+
+                // if still no progress, force advance 1 to avoid infinite loops
+                if (this.tokenStream.getCursor() === before) {
+                    this.tokenStream.advance();
+                }
+            }
+
+            // class body close
+            const close = this.consume('closing curly brace', TokenType.SYMBOL, '}');
+            if (!close) {
+                this.reportError(MessageCode.E_UNEXPECTED_TOKEN, "Missing '}'");
+                this.recoverToRestart([{ type: TokenType.SYMBOL, value: '}' }, ...this.CLASS_HEADER_RESTART]);
+                if (this.peekIs(TokenType.SYMBOL, '}')) {
+                    this.tokenStream.advance();
+                }
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * @private
+     */
+    private parseClassAugmentation() {
+        if (!this.eat(TokenType.IDENT, 'augment')) {
+            return false;
+        }
+
+        const identifier = this.expectOrRecoverToRestart(
+            'class identifier',
+            { type: TokenType.IDENT, value: 'class' },
+            this.CLASS_HEADER_RESTART
+        );
+
+        if (!identifier) {
+            return true;
+        }
+
+        const className = this.expectOrRecoverToRestart(
+            'class name',
+            { type: TokenType.IDENT },
+            this.CLASS_HEADER_RESTART
+        );
+
+        if (!className) {
+            return true;
+        }
+
+        this.buildNode(new ClassAugmentation(className.value), () => {
+
+            // class body open
+            const open = this.expectOrRecoverToRestart(
+                'opening curly brace',
+                { type: TokenType.SYMBOL, value: '{' },
+                this.CLASS_HEADER_RESTART
+            );
+
+            if (!open) {
+                return; // withNode will safely up()
+            }
+
+            // Parse augment body
+
+            // class body close
+            const close = this.consume('closing curly brace', TokenType.SYMBOL, '}');
+            if (!close) {
+                this.reportError(MessageCode.E_UNEXPECTED_TOKEN, "Missing '}'");
+                this.recoverToRestart([{ type: TokenType.SYMBOL, value: '}' }, ...this.CLASS_HEADER_RESTART]);
+                if (this.peekIs(TokenType.SYMBOL, '}')) {
+                    this.tokenStream.advance();
+                }
+            }
+        });
+
+        return true;
     }
 
     private parseStyleBlock() {
@@ -169,10 +300,9 @@ export default class Parser {
         const contents = this.eat(TokenType.RAW_BLOCK);
 
         if (contents) {
-            this.builder.insert(new StyleBlock());
-            this.builder.down();
-            this.builder.setAttribute('contents', contents.value);
-            this.builder.up();
+            this.buildNode(new StyleBlock(), () => {
+                this.builder.setAttribute('contents', contents.value);
+            });
             return true;
         }
 
@@ -182,14 +312,17 @@ export default class Parser {
     private parseSlotDeclaration() {
         if (this.eat(TokenType.IDENT,'slot')) {
 
-            const name = this.consume('slot name', TokenType.IDENT);
+            const name = this.expectOrRecoverStatement(
+                RecoveryContext.CLASS_MEMBER,
+                'slot name',
+                { type: TokenType.IDENT }
+            );
 
             if (name) {
-                this.builder.insert(new SlotDeclaration(name.value));
+                this.insertNode(new SlotDeclaration(name.value))
             }
 
-            this.consume('EOL semicolon', TokenType.SYMBOL, ';');
-
+            this.finishStatement(RecoveryContext.CLASS_MEMBER);
             return true;
         }
 
@@ -200,32 +333,34 @@ export default class Parser {
 
         if (this.eat(TokenType.SYMBOL,'@')) {
 
-            const name = this.consume('variant name', TokenType.IDENT);
+            const name = this.expectOrRecoverStatement(
+                RecoveryContext.CLASS_MEMBER,
+                'variant name',
+                { type: TokenType.IDENT }
+            );
 
             if (name) {
-                this.builder.insert(new VariantDeclaration(name.value));
-                this.builder.down();
+                this.buildNode(new VariantDeclaration(name.value), () => {
+                    this.consume('colon', TokenType.SYMBOL, ':');
 
-                this.consume(':', TokenType.SYMBOL, ':');
-
-                if (this.parseType()) {
-                    this.builder.setAttributeFromLastChild('type');
-                } else {
-                    // todo
-                }
-
-                // Parse default value
-                if (this.eat(TokenType.SYMBOL, '=')) {
-
-                    const defaultValue = this.consume('default value', TokenType.STRING);
-
-                    if (defaultValue) {
-                        this.builder.setAttribute('default', defaultValue.value);
+                    if (this.parseType(RecoveryContext.CLASS_MEMBER)) {
+                        this.builder.setAttributeFromLastChild('type');
                     }
-                }
 
-                this.builder.up();
-                this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+                    if (this.eat(TokenType.SYMBOL, '=')) {
+                        const defaultValue = this.expectOrRecoverStatement(
+                            RecoveryContext.CLASS_MEMBER,
+                            'default value',
+                            { type: TokenType.STRING }
+                        );
+
+                        if (defaultValue) {
+                            this.builder.setAttribute('default', defaultValue.value);
+                        }
+                    }
+
+                    this.finishStatement(RecoveryContext.CLASS_MEMBER);
+                });
             }
 
             return true;
@@ -236,29 +371,42 @@ export default class Parser {
 
     private parseNamespaceStatement() {
         if (this.eat(TokenType.IDENT, 'namespace')) {
-            const namespace = this.consume('namespace', TokenType.IDENT);
+
+            const namespace = this.expectOrRecoverStatement(
+                RecoveryContext.TOP_LEVEL,
+                'namespace',
+                { type: TokenType.IDENT }
+            );
 
             if (namespace) {
-                this.builder.insert(new Namespace(namespace.value));
+                this.insertNode(new Namespace(namespace.value));
             }
 
-            this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+            this.finishStatement(RecoveryContext.TOP_LEVEL);
             return true;
         }
 
         return false;
     }
 
+    /**
+     * Parse import statements - import 'path';
+     * @private
+     */
     private parseImportStatement() {
         if (this.eat(TokenType.IDENT, 'import')) {
 
-            const path = this.consume('import path', TokenType.STRING);
+            const path = this.expectOrRecoverStatement(
+                RecoveryContext.TOP_LEVEL,
+                'import path',
+                { type: TokenType.STRING }
+            );
 
             if (path) {
-                this.builder.insert(new ImportStatement(path.value));
+                this.insertNode(new ImportStatement(path.value));
             }
 
-            this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+            this.finishStatement(RecoveryContext.TOP_LEVEL);
             return true;
         }
 
@@ -271,30 +419,48 @@ export default class Parser {
     private parseTypeDeclaration() {
         if (this.eat(TokenType.IDENT, 'type')) {
 
-            const typeName = this.consume('type name', TokenType.IDENT);
+            const typeName = this.expectOrRecoverStatement(
+                RecoveryContext.TOP_LEVEL,
+                'type name',
+                { type: TokenType.IDENT }
+            );
 
             if (typeName) {
-                this.builder.insert(new TypeDeclaration(typeName.value));
-                this.builder.down();
-                this.consume('=', TokenType.SYMBOL, '=');
-                this.parseType();
-                this.builder.up();
-                this.consume('EOL semicolon', TokenType.SYMBOL, ';');
+                this.buildNode(new TypeDeclaration(typeName.value), () => {
+                    this.consume('=', TokenType.SYMBOL, '=');
+                    this.parseType(RecoveryContext.TOP_LEVEL);
+                });
             }
-            
+
+            this.finishStatement(RecoveryContext.TOP_LEVEL);
             return true;
         }
 
         return false;
     }
 
-    private parseType() {
-        if (this.expectOneOf([TokenType.IDENT, TokenType.STRING])) {
-            this.builder.insert(new Type());
-            this.builder.down();
-            this.parseUnionType();
-            this.builder.up();
+    private parseType(ctx: RecoveryContext) {
+        if (this.peekIsOneOf([TokenType.IDENT, TokenType.STRING])) {
+            this.buildNode(new Type(), () => {
+                this.parseUnionType();
+            });
             return true;
+        }
+
+        const tok = this.peek();
+        if (tok) {
+            this.reportError(
+                MessageCode.E_UNEXPECTED_TOKEN,
+                `Unexpected token '${tok.value ?? '<eof>'}' in type`
+            );
+        }
+
+        if (ctx === RecoveryContext.TOP_LEVEL) {
+            this.recoverTopLevelStatement();
+        }
+
+        if (ctx === RecoveryContext.CLASS_MEMBER) {
+            this.recoverClassMemberStatement();
         }
 
         return false;
@@ -305,14 +471,14 @@ export default class Parser {
         const ident = this.eat(TokenType.IDENT);
 
         if (ident) {
-            this.builder.insert(new IdentifierType(ident.value))
+            this.insertNode(new IdentifierType(ident.value))
             return true;
         }
 
         const string = this.eat(TokenType.STRING);
 
         if (string) {
-            this.builder.insert(new StringType(string.value))
+            this.insertNode(new StringType(string.value))
             return true;
         }
 
@@ -320,22 +486,41 @@ export default class Parser {
     }
 
     private parseUnionType() {
-        if (this.parseTypeValue()) {
-            if (this.eat(TokenType.SYMBOL, '|')) {
-                this.parseUnionType();
-            }
-            return true;
+        if (!this.parseTypeValue()) {
+            return false;
         }
 
-        return false;
+        while (this.eat(TokenType.SYMBOL, '|')) {
+            if (!this.parseTypeValue()) {
+                this.reportError(MessageCode.E_UNEXPECTED_TOKEN, "Expected type after '|'");
+                this.recoverTypeBoundary();
+                break;
+            }
+        }
+        return true;
     }
 
     /**
-     * Look at token. Don’t move.
-     * @param offset
+     * @param node
+     * @param fn
+     * @private
      */
-    peek(offset = 0): Nullable<Token> {
-        return this.tokenStream.peek(offset);
+    private buildNode<T>(node: Node, fn: () => T): T {
+        this.builder.insert(node);
+        this.builder.down();
+        try {
+            return fn();
+        } finally {
+            this.builder.up();
+        }
+    }
+
+    /**
+     * @param node
+     * @private
+     */
+    private insertNode(node: Node) {
+        this.builder.insert(node);
     }
 
     /**
@@ -345,7 +530,7 @@ export default class Parser {
      * @param type
      * @param value
      */
-    eat(type: TokenType, value?: string): Nullable<Token> {
+    private eat(type: TokenType, value?: string): Nullable<Token> {
         const tok = this.peek();
         if (!tok) return null;
 
@@ -359,12 +544,12 @@ export default class Parser {
 
     /**
      * If matches → advance and return token
-     * If not → report error (using ctx for message)
-     * @param ctx
+     * If not → report error
+     * @param label
      * @param type
      * @param value
      */
-    consume(ctx: string, type: TokenType, value?: string): Nullable<Token> {
+    private consume(label: string, type: TokenType, value?: string): Nullable<Token> {
         const tok = this.peek();
 
         if (tok && tok.type === type && (value === undefined || tok.value === value)) {
@@ -373,42 +558,183 @@ export default class Parser {
         }
 
         if (tok) {
-            this.reporter.error({
-                message: `Expected ${ctx}, got ${tok.type}`,
-                span: {
-                    start: tok.startPosition,
-                    end: tok.endPosition,
-                }
-            });
+            this.reportError(
+                MessageCode.E_UNEXPECTED_TOKEN,
+                `Expected ${type}${value ? ` '${value}'` : ''} (${label}), got ${tok.type} '${tok.value ?? ''}'`
+            );
         }
 
         return null; // caller decides how to recover
     }
 
     /**
-     *
-     * @param types
+     * @param label
+     * @param token
+     * @param syncSet
+     * @private
      */
-    public expectOneOf(types: TokenType[]): boolean {
-        const token = this.tokenStream.peek();
-        if (! token) {
+    private expectOrRecoverToRestart(label: string, token: { type: TokenType, value?: string }, syncSet: SyncToken[]): Nullable<Token> {
+        const tok = this.consume(label, token.type, token.value);
+        if (tok) {
+            return tok;
+        }
+
+        // recover to next member boundary
+        this.recoverToRestart(syncSet);
+        return null;
+    }
+
+    private expectOrRecoverStatement(ctx: RecoveryContext, label: string, token: { type: TokenType, value?: string }) {
+        const t = this.consume(label, token.type, token.value);
+        if (t) {
+            return t;
+        }
+
+        if (ctx === RecoveryContext.TOP_LEVEL) {
+            this.recoverTopLevelStatement();
+        }
+
+        if (ctx === RecoveryContext.CLASS_MEMBER) {
+            this.recoverClassMemberStatement();
+        }
+        return null;
+    }
+
+    /**
+     * @param ctx
+     * @private
+     */
+    private finishStatement(ctx: RecoveryContext) {
+
+        if (this.eat(TokenType.SYMBOL, ';')) {
+            // All is fine
+            return;
+        }
+
+        this.reportError(MessageCode.E_UNEXPECTED_TOKEN, 'Missing semicolon \';\' at end of statement');
+
+        if (ctx === RecoveryContext.TOP_LEVEL) {
+            this.recoverTopLevelStatement();
+            return;
+        }
+
+        if (ctx === RecoveryContext.CLASS_MEMBER) {
+            this.recoverClassMemberStatement();
+            return;
+        }
+    }
+
+    /**
+     * @param syncSet
+     * @private
+     */
+    private recoverToRestart(syncSet: SyncToken[]) {
+        this.tokenStream.syncTo(syncSet, {
+            consumeStopper: false
+        });
+    }
+
+    /**
+     * @private
+     */
+    private recoverTopLevelStatement() {
+        this.recoverToRestart([
+            { type: TokenType.SYMBOL, value: ';' },
+            ...this.TOP_LEVEL_START_TOKENS,
+        ]);
+
+        if (this.peekIs(TokenType.SYMBOL, ';')) {
+            this.tokenStream.advance();
+        }
+    }
+
+    /**
+     * @private
+     */
+    private recoverClassMemberStatement() {
+        this.recoverToRestart([
+            { type: TokenType.SYMBOL, value: ';' },
+            ...this.CLASS_MEMBER_RESTART,
+        ]);
+
+        if (this.peekIs(TokenType.SYMBOL, ';')) {
+            this.tokenStream.advance();
+        }
+    }
+
+    /**
+     * @private
+     */
+    private recoverTypeBoundary() {
+        this.recoverToRestart([
+            { type: TokenType.SYMBOL, value: '|' },
+            { type: TokenType.SYMBOL, value: ';' },
+            ...this.CLASS_MEMBER_RESTART,
+            ...this.TOP_LEVEL_START_TOKENS,
+        ]);
+
+        if (this.peekIs(TokenType.SYMBOL, '|')) {
+            this.tokenStream.advance();
+        }
+    }
+
+    /**
+     * @param type
+     * @param value
+     * @private
+     */
+    private peekIs(type: TokenType, value: string) {
+        const tok = this.peek();
+        if (!tok) {
             return false;
         }
 
-        if (token && types.includes(token.type)) {
-            return true;
+        return tok.type === type && tok.value === value;
+    }
+
+    /**
+     * Look at token. Don’t move.
+     * @param offset
+     */
+    private peek(offset = 0): Nullable<Token> {
+        return this.tokenStream.peek(offset);
+    }
+
+    /**
+     * @param types
+     */
+    private peekIsOneOf(types: TokenType[]): boolean {
+        const token = this.tokenStream.peek();
+        if (!token) {
+            return false;
+        }
+        return types.includes(token.type);
+    }
+
+    /**
+     * @param code
+     * @param message
+     * @private
+     */
+    private reportError(code: MessageCode, message: string) {
+        const token = this.peek();
+
+        if (!token ||
+            (
+                this.lastErrorIndex !== null &&
+                this.lastErrorIndex === token.startPosition.index
+            )
+        ) {
+            // Don't report the error
+            return;
         }
 
-        if (token) {
-            this.reporter.error({
-                message: `Unexpected token, expected one of: ${types.join(', ')}`,
-                span: {
-                    start: token.startPosition,
-                    end: token.endPosition,
-                }
-            });
-        }
-        // todo ??
-        return false;
+        this.reporter.error({
+            message,
+            code,
+            span: { start: token.startPosition, end: token.endPosition }
+        });
+
+        this.lastErrorIndex = token.startPosition.index;
     }
 }
