@@ -23,8 +23,8 @@ namespace ui;
 import 'Button.loom';
 import 'types.loom';
 
-type Size: 'small' | 'medium' | 'large';
-type Intent: 'neutral' | 'danger' | 'warning' | 'success';
+type Size = 'small' | 'medium' | 'large';
+type Intent = 'neutral' | 'danger' | 'warning' | 'success';
 
 class Button {
 
