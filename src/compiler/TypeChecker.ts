@@ -1,9 +1,9 @@
-import AST from '../parser/AST';
-import Reporter from '../diagnostics/Reporter';
+import AST from './AST';
+import DiagReporter from './DiagReporter';
 import TypeTable from './TypeTable';
-import { ResolvedType } from '../types/analyzer';
-import EventBus from '../../core/bus/EventBus';
-import { TEventMap } from '../types/bus';
+import { ResolvedType } from './types/analyzer';
+import EventBus from '../core/bus/EventBus';
+import { TEventMap } from './types/bus';
 
 export default class TypeChecker {
     /**
@@ -14,13 +14,13 @@ export default class TypeChecker {
     /**
      * @private
      */
-    private reporter: Reporter;
+    private reporter: DiagReporter;
 
     /**
      * @param events
      * @param reporter
      */
-    constructor(events: EventBus<TEventMap>, reporter: Reporter) {
+    constructor(events: EventBus<TEventMap>, reporter: DiagReporter) {
         this.events = events;
         this.reporter = reporter;
     }

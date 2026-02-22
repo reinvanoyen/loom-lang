@@ -1,4 +1,4 @@
-import { Position } from '../types/tokenization';
+import { Position } from './types/tokenization';
 import chalk from 'chalk';
 
 export enum MessageCode {
@@ -30,7 +30,7 @@ type DiagnosticMessage = {
     span?: { start: Position, end: Position };
 };
 
-export default class Reporter {
+export default class DiagReporter {
     /**
      * @private
      */

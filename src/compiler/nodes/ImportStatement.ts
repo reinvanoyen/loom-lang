@@ -1,5 +1,5 @@
 import Node from '../Node';
-import Compiler from '../../Compiler';
+import Compiler from '../Compiler';
 
 export default class ImportStatement extends Node {
 

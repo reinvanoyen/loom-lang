@@ -1,5 +1,5 @@
-import { Namespace } from '../types/namespace';
-import { Nullable } from '../types/nullable';
+import { Namespace } from './types/namespace';
+import { Nullable } from './types/nullable';
 
 export type SymbolType = 'namespace' | 'class' | 'type' | 'variant' | 'slot';
 

@@ -1,6 +1,6 @@
 import Node from '../Node';
-import TypeChecker from '../../analyzer/TypeChecker';
-import TypeTable from '../../analyzer/TypeTable';
+import TypeChecker from '../TypeChecker';
+import TypeTable from '../TypeTable';
 
 export default class VariantDeclaration extends Node {
 

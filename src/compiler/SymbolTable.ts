@@ -1,7 +1,7 @@
-import { Namespace } from '../types/namespace';
+import { Namespace } from './types/namespace';
 import Symbol from './Symbol';
 import chalk from 'chalk';
-import IdAllocator from '../../core/allocators/IdAllocator';
+import IdAllocator from '../core/allocators/IdAllocator';
 
 export default class SymbolTable {
     /**

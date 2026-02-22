@@ -1,7 +1,7 @@
 import Node from './Node';
-import Compiler from '../Compiler';
-import Binder from '../binder/Binder';
-import TypeResolver from '../analyzer/TypeResolver';
+import Compiler from './Compiler';
+import Binder from './Binder';
+import TypeResolver from './TypeResolver';
 
 export default class AST extends Node {
 
