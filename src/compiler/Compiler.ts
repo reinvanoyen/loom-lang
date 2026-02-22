@@ -23,7 +23,7 @@ export default class Compiler {
         });
 
         // Make a diagnostics reporter we can report messages to during this whole process
-        const diagnostics = new DiagReporter();
+        const diagnostics = new DiagReporter(code);
 
         // Tokenize the code
         const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(code);

@@ -343,7 +343,7 @@ export default class Parser {
                     const colon = this.consume('colon', TokenType.SYMBOL, ':');
                     if (colon) {
                         if (this.peekIs(TokenType.SYMBOL, '=')) {
-                            this.reportError(MessageCode.E_UNEXPECTED_TOKEN, "Missing type after ':'");
+                            this.reportError(MessageCode.E_UNEXPECTED_TOKEN, "Missing type after ':'", this.peek(-1));
                         } else if (this.parseType(RecoveryContext.CLASS_MEMBER)) {
                             this.builder.setAttributeFromLastChild('type');
                         }
