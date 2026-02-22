@@ -1,5 +1,5 @@
 import Node from '../Node';
-import Binder from '../../binder/Binder';
+import Binder from '../Binder';
 
 export default class Type extends Node {
 

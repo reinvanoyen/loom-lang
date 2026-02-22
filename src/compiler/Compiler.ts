@@ -1,17 +1,17 @@
 import chalk from 'chalk';
 import EventBus from '../core/bus/EventBus';
 import { TEventMap } from './types/bus';
-import Reporter from './diagnostics/Reporter';
-import Lexer from './tokenization/Lexer';
-import ASTBuilder from './parser/ASTBuilder';
-import AST from './parser/AST';
+import DiagReporter from './DiagReporter';
+import Lexer from './Lexer';
+import ASTBuilder from './ASTBuilder';
+import AST from './AST';
 import IdAllocator from '../core/allocators/IdAllocator';
-import Parser from './parser/Parser';
-import SymbolTable from './binder/SymbolTable';
-import Binder from './binder/Binder';
-import TypeTable from './analyzer/TypeTable';
-import TypeResolver from './analyzer/TypeResolver';
-import TypeChecker from './analyzer/TypeChecker';
+import Parser from './Parser';
+import SymbolTable from './SymbolTable';
+import Binder from './Binder';
+import TypeTable from './TypeTable';
+import TypeResolver from './TypeResolver';
+import TypeChecker from './TypeChecker';
 
 export default class Compiler {
     public compile(code: string) {
@@ -23,7 +23,7 @@ export default class Compiler {
         });
 
         // Make a diagnostics reporter we can report messages to during this whole process
-        const diagnostics = new Reporter();
+        const diagnostics = new DiagReporter();
 
         // Tokenize the code
         const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(code);

@@ -1,8 +1,8 @@
-import Symbol from '../binder/Symbol';
+import Symbol from '../Symbol';
 import { ResolvedType } from './analyzer';
-import AST from '../parser/AST';
-import TypeTable from '../analyzer/TypeTable';
-import TokenStream from '../tokenization/TokenStream';
+import AST from '../AST';
+import TypeTable from '../TypeTable';
+import TokenStream from '../TokenStream';
 
 export interface TEventMap {
     startTokenization: { code: string }

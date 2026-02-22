@@ -1,12 +1,12 @@
-import Lexer from '@/compiler/tokenization/Lexer';
+import Lexer from '@/compiler/Lexer';
 import EventBus from '@/core/bus/EventBus';
-import Reporter from '@/compiler/diagnostics/Reporter';
+import DiagReporter from '@/compiler/DiagReporter';
 import { TEventMap } from '@/compiler/types/bus';
 import { TokenType } from '@/compiler/types/tokenization';
 
-function createLexer(): { lexer: Lexer; reporter: Reporter } {
+function createLexer(): { lexer: Lexer; reporter: DiagReporter } {
     const events = new EventBus<TEventMap>();
-    const reporter = new Reporter();
+    const reporter = new DiagReporter();
     const lexer = new Lexer(events, reporter);
     return { lexer, reporter };
 }
@@ -189,7 +189,7 @@ describe('Lexer', () => {
     describe('unterminated string', () => {
         it('emits string token and reports error for unterminated double quote', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new Reporter();
+            const reporter = new DiagReporter();
             const lexer = new Lexer(events, reporter);
             const stream = lexer.tokenize('"hello');
             const tokens = stream.getTokens();
@@ -202,7 +202,7 @@ describe('Lexer', () => {
     describe('unterminated raw block', () => {
         it('emits raw block token and reports error for unterminated block', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new Reporter();
+            const reporter = new DiagReporter();
             const lexer = new Lexer(events, reporter);
             const stream = lexer.tokenize('{% open');
             const tokens = stream.getTokens();
@@ -215,7 +215,7 @@ describe('Lexer', () => {
     describe('event emission', () => {
         it('emits startTokenization when tokenizing', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new Reporter();
+            const reporter = new DiagReporter();
             const lexer = new Lexer(events, reporter);
             const payloads: { code: string }[] = [];
             events.on('startTokenization', (p) => payloads.push(p));

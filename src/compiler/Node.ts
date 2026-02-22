@@ -1,11 +1,11 @@
-import { Nullable } from '../types/nullable';
-import { AttributeValue } from '../types/attribute';
-import Symbol from '../binder/Symbol';
-import Compiler from '../Compiler';
-import Binder from '../binder/Binder';
-import TypeResolver from '../analyzer/TypeResolver';
-import TypeChecker from '../analyzer/TypeChecker';
-import TypeTable from '../analyzer/TypeTable';
+import { Nullable } from './types/nullable';
+import { AttributeValue } from './types/attribute';
+import Symbol from './Symbol';
+import Compiler from './Compiler';
+import Binder from './Binder';
+import TypeResolver from './TypeResolver';
+import TypeChecker from './TypeChecker';
+import TypeTable from './TypeTable';
 import chalk from 'chalk';
 
 export default class Node {

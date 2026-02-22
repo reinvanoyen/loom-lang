@@ -1,7 +1,7 @@
 import Node from '../Node';
-import Binder from '../../binder/Binder';
-import Compiler from '../../Compiler';
-import TypeResolver from '../../analyzer/TypeResolver';
+import Binder from '../Binder';
+import Compiler from '../Compiler';
+import TypeResolver from '../TypeResolver';
 
 export default class ClassAugmentation extends Node {
 

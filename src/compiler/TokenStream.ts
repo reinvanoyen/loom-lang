@@ -1,4 +1,4 @@
-import { Token, TokenType } from '../types/tokenization';
+import { Token, TokenType } from './types/tokenization';
 import chalk from 'chalk';
 import { Nullable } from '@/compiler/types/nullable';
 

@@ -1,23 +1,23 @@
-import { Token, TokenType } from '../types/tokenization';
+import { Token, TokenType } from './types/tokenization';
 import AST from './AST';
-import { Nullable } from '../types/nullable';
-import Reporter, { MessageCode } from '../diagnostics/Reporter';
-import EventBus from '../../core/bus/EventBus';
-import { TEventMap } from '../types/bus';
-import TokenStream, { SyncToken } from '../tokenization/TokenStream';
+import { Nullable } from './types/nullable';
+import DiagReporter, { MessageCode } from './DiagReporter';
+import EventBus from '../core/bus/EventBus';
+import { TEventMap } from './types/bus';
+import TokenStream, { SyncToken } from './TokenStream';
 import ASTBuilder from './ASTBuilder';
-import Namespace from '@/compiler/parser/nodes/Namespace';
-import ImportStatement from '@/compiler/parser/nodes/ImportStatement';
-import Type from '@/compiler/parser/nodes/Type';
-import TypeDeclaration from '@/compiler/parser/nodes/TypeDeclaration';
-import VariantDeclaration from '@/compiler/parser/nodes/VariantDeclaration';
-import SlotDeclaration from '@/compiler/parser/nodes/SlotDeclaration';
-import StyleBlock from '@/compiler/parser/nodes/StyleBlock';
-import Class from '@/compiler/parser/nodes/Class';
-import IdentifierType from '@/compiler/parser/nodes/IdentifierType';
-import StringType from '@/compiler/parser/nodes/StringType';
-import Node from '@/compiler/parser/Node';
-import ClassAugmentation from '@/compiler/parser/nodes/ClassAugmentation';
+import Namespace from '@/compiler/nodes/Namespace';
+import ImportStatement from '@/compiler/nodes/ImportStatement';
+import Type from '@/compiler/nodes/Type';
+import TypeDeclaration from '@/compiler/nodes/TypeDeclaration';
+import VariantDeclaration from '@/compiler/nodes/VariantDeclaration';
+import SlotDeclaration from '@/compiler/nodes/SlotDeclaration';
+import StyleBlock from '@/compiler/nodes/StyleBlock';
+import Class from '@/compiler/nodes/Class';
+import IdentifierType from '@/compiler/nodes/IdentifierType';
+import StringType from '@/compiler/nodes/StringType';
+import Node from '@/compiler/Node';
+import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
 
 enum RecoveryContext {
     TOP_LEVEL,
@@ -69,7 +69,7 @@ export default class Parser {
     /**
      * @private
      */
-    private reporter: Reporter;
+    private reporter: DiagReporter;
 
     /**
      * @private
@@ -82,7 +82,7 @@ export default class Parser {
      * @param events
      * @param reporter
      */
-    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: Reporter) {
+    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: DiagReporter) {
         this.tokenStream = tokenStream;
         this.builder = builder;
         this.events = events;

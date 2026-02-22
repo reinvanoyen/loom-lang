@@ -1,6 +1,6 @@
-import IdAllocator from '../../core/allocators/IdAllocator';
-import AST from '@/compiler/parser/AST';
-import Node from '@/compiler/parser/Node';
+import IdAllocator from '../core/allocators/IdAllocator';
+import AST from '@/compiler/AST';
+import Node from '@/compiler/Node';
 
 export default class ASTBuilder {
     /**

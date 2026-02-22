@@ -1,10 +1,10 @@
-import Node from '../parser/Node';
+import Node from './Node';
 import Symbol from './Symbol';
 import SymbolTable from './SymbolTable';
-import { Namespace } from '../types/namespace';
-import Reporter, { MessageCode } from '../diagnostics/Reporter';
-import EventBus from '../../core/bus/EventBus';
-import { TEventMap } from '../types/bus';
+import { Namespace } from './types/namespace';
+import DiagReporter, { MessageCode } from './DiagReporter';
+import EventBus from '../core/bus/EventBus';
+import { TEventMap } from './types/bus';
 
 export default class Binder {
     /**
@@ -26,14 +26,14 @@ export default class Binder {
     /**
      * @private
      */
-    private reporter: Reporter;
+    private reporter: DiagReporter;
 
     /**
      * @param events
      * @param reporter
      * @param symbolTable
      */
-    constructor(events: EventBus<TEventMap>, reporter: Reporter, symbolTable: SymbolTable) {
+    constructor(events: EventBus<TEventMap>, reporter: DiagReporter, symbolTable: SymbolTable) {
         this.events = events;
         this.reporter = reporter;
         this.symbolTable = symbolTable;
