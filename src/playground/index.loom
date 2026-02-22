@@ -25,7 +25,12 @@ class Button {
 }
 
 augment class Button {
-
+	{%
+		position: relative;
+		width: 100px;
+		height: 90px;
+		animation: heartbeat 1s infinite;
+	%}
 }
 
 class Link extends Button {
