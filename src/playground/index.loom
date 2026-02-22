@@ -10,22 +10,28 @@ type Word = string;
 
 class Button {
 
-	@size: Size = 'medium';
-	@intent: Intent | 'flashy' = 'flashy';
+    @size: = 'medium';
+    @intent: Intent | 'flashy' = 'flashy';
 
-	slot icon;
-	slot link;
+    what;
 
-	{%
-		position: relative;
-		width: 100px;
-		height: 90px;
-		animation: heartbeat 1s infinite;
-	%}
+    slot link;
+
+    {%
+        position: relative;
+        width: 100px;
+        height: 90px;
+        animation: heartbeat 1s infinite;
+    %}
 }
 
 augment class Button {
-
+    {%
+        position: relative;
+        width: 100px;
+        height: 90px;
+        animation: heartbeat 1s infinite;
+    %}
 }
 
 class Link extends Button {
@@ -33,5 +39,5 @@ class Link extends Button {
 }
 
 class Label {{%
-	color: red;
+    color: red;
 %}}
