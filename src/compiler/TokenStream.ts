@@ -94,34 +94,7 @@ export default class TokenStream {
     public print() {
         const output: string[] = [];
         this.tokens.forEach(token => {
-
-            if (token.type === 'Symbol') {
-                output.push(chalk.grey(`${token.type}(${token.value})`));
-            }
-
-            if (token.type === 'Ident') {
-                output.push(chalk.yellow(`${token.type}(${token.value})`));
-            }
-
-            if (token.type === 'String') {
-                output.push(chalk.green(`${token.type}(${token.value})`));
-            }
-
-            if (token.type === 'Newline') {
-                output.push(chalk.magenta('newline'));
-            }
-
-            if (token.type === 'Number') {
-                output.push(chalk.blue(`${token.type}(${token.value})`));
-            }
-
-            if (token.type === 'RawBlock') {
-                output.push(chalk.bgCyan(`${token.type}(${token.value})`));
-            }
-
-            if (token.type === 'Unknown') {
-                output.push(chalk.red(`${token.type}(${token.value})`));
-            }
+            output.push(chalk.grey(`${token.type}(${chalk.blue(token.value)}) ${token.startPosition.line}:${token.startPosition.column} -> ${token.endPosition.line}:${token.endPosition.column}`));
         });
 
         console.log(output.join('\n'));

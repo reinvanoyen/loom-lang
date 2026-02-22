@@ -123,7 +123,7 @@ export default class Parser {
                 const tok = this.tokenStream.peek();
 
                 if (tok) {
-                    this.reportError(MessageCode.E_UNEXPECTED_TOKEN, `Unexpected token '${tok?.value ?? '<eof>'}'`);
+                    this.reportError(MessageCode.E_UNEXPECTED_TOKEN, `Unexpected token '${tok?.value ?? '<eof>'}'`, tok);
                 }
 
                 // Skip until we can plausibly start again
@@ -717,7 +717,7 @@ export default class Parser {
             return;
         }
 
-        this.reportError(MessageCode.E_UNEXPECTED_TOKEN, 'Missing semicolon \';\' at end of statement');
+        this.reportError(MessageCode.E_UNEXPECTED_TOKEN, 'Missing semicolon \';\' at end of statement', this.peek(-1));
 
         if (ctx === RecoveryContext.TOP_LEVEL) {
             this.recoverTopLevelStatement();
@@ -820,25 +820,21 @@ export default class Parser {
     /**
      * @param code
      * @param message
+     * @param at
      * @private
      */
-    private reportError(code: MessageCode, message: string) {
-        const token = this.peek();
+    private reportError(code: MessageCode, message: string, at?: Nullable<Token>) {
+        const token = at ?? this.peek();
+        if (!token) return;
 
-        if (!token ||
-            (
-                this.lastErrorIndex !== null &&
-                this.lastErrorIndex === token.startPosition.index
-            )
-        ) {
-            // Don't report the error
+        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.startPosition.index) {
             return;
         }
 
         this.reporter.error({
             message,
             code,
-            span: { start: token.startPosition, end: token.endPosition }
+            span: { start: token.startPosition, end: token.endPosition },
         });
 
         this.lastErrorIndex = token.startPosition.index;
