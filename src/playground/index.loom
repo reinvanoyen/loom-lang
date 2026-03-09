@@ -10,10 +10,8 @@ type Word = string;
 
 class Button {
 
-    @size: = 'medium';
+    @size: Size = 'medium';
     @intent: Intent | 'flashy' = 'flashy';
-
-    what;
 
     slot link;
 

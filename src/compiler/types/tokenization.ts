@@ -29,6 +29,4 @@ export type Token = {
 
 export type Position = {
     index: number;
-    line: number;
-    column: number;
 };

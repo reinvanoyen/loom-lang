@@ -18,6 +18,7 @@ import IdentifierType from '@/compiler/nodes/IdentifierType';
 import StringType from '@/compiler/nodes/StringType';
 import Node from '@/compiler/Node';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
+import Span from '@/core/Span';
 
 enum RecoveryContext {
     TOP_LEVEL,
@@ -834,7 +835,7 @@ export default class Parser {
         this.reporter.error({
             message,
             code,
-            span: { start: token.startPosition, end: token.endPosition },
+            span: new Span('filename', token.startPosition, token.endPosition),
         });
 
         this.lastErrorIndex = token.startPosition.index;

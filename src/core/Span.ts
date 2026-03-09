@@ -26,4 +26,12 @@ export default class Span {
         this.startPosition = startPosition;
         this.endPosition = endPosition;
     }
+
+    public getStart(): number {
+        return this.startPosition.index;
+    }
+
+    public getEnd(): number {
+        return this.endPosition.index;
+    }
 }

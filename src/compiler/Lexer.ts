@@ -4,6 +4,9 @@ import EventBus from '../core/bus/EventBus';
 import { TEventMap } from './types/bus';
 import DiagReporter, { MessageCode } from './DiagReporter';
 import TokenStream from './TokenStream';
+import Source from '@/compiler/Source';
+import { Nullable } from '@/compiler/types/nullable';
+import Span from '@/core/Span';
 
 /**
  * Notes: span includes delimiters, token value excludes them
@@ -13,7 +16,7 @@ export default class Lexer {
      * The source code to tokenize
      * @private
      */
-    private source: string = '';
+    private source: Nullable<Source> = null;
 
     /**
      * The current mode of lexing
@@ -25,13 +28,13 @@ export default class Lexer {
      * The current position
      * @private
      */
-    private position: Position = { index: 0, line: 1, column: 1 };
+    private position: Position = { index: 0 };
 
     /**
      * The position at which we started lexing in a new mode
      * @private
      */
-    private modeStartPosition: Position =  { index: 0, line: 1, column: 1 };
+    private modeStartPosition: Position =  { index: 0 };
 
     /**
      * The index of the last character, also the amount of characters
@@ -82,8 +85,8 @@ export default class Lexer {
      */
     private reset() {
         this.mode = LexMode.ALL;
-        this.position = { index: 0, line: 1, column: 1 };
-        this.modeStartPosition = { index: 0, line: 1, column: 1 };
+        this.position = { index: 0 };
+        this.modeStartPosition = { index: 0 };
         this.tokens = new TokenStream();
         this.value = '';
         this.delimiter = '';
@@ -91,16 +94,16 @@ export default class Lexer {
 
     /**
      * Transforms code into a TokenStream
-     * @param text
+     * @param source
      */
-    public tokenize(text: string): TokenStream {
+    public tokenize(source: Source): TokenStream {
 
         this.reset();
 
-        this.source = text;
-        this.end = this.source.length;
+        this.source = source;
+        this.end = this.source.getLength();
 
-        this.events.emit('startTokenization', { code: text });
+        this.events.emit('startTokenization', { code: this.source.getText() });
 
         while (this.position.index < this.end) {
 
@@ -151,7 +154,7 @@ export default class Lexer {
             this.reporter.error({
                 code: MessageCode.E_TOKEN_NOT_CLOSED,
                 message: warning,
-                span: { start: { ...this.modeStartPosition }, end: { ...this.position } }
+                span: new Span('filename', { ...this.modeStartPosition }, { ...this.position })
             });
 
             this.tokens.add({
@@ -177,8 +180,11 @@ export default class Lexer {
      * @param offset
      * @private
      */
-    private peek(offset = 0) {
-        return this.source[this.position.index + offset] ?? '';
+    private peek(offset = 0): string {
+        if (!this.source) {
+            return '';
+        }
+        return this.source.getCharAt(this.position.index + offset);
     }
 
     /**
@@ -189,20 +195,15 @@ export default class Lexer {
 
         if (c === '\r' && this.peek(1) === '\n') {
             this.position.index += 2;
-            this.position.line++;
-            this.position.column = 1;
             return;
         }
 
         if (c === '\n' || c === '\r') {
             this.position.index += 1;
-            this.position.line++;
-            this.position.column = 1;
             return;
         }
 
         this.position.index += 1;
-        this.position.column += 1;
     }
 
     /**
@@ -213,6 +214,8 @@ export default class Lexer {
 
         // Reset the current token value
         this.value = '';
+
+        console.log(this.peek());
 
         if (
             grammar.REGEX_RAW_BLOCK_START.test(this.peek()) &&

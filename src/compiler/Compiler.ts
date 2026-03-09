@@ -12,10 +12,12 @@ import Binder from './Binder';
 import TypeTable from './TypeTable';
 import TypeResolver from './TypeResolver';
 import TypeChecker from './TypeChecker';
+import Source from '@/compiler/Source';
 
 export default class Compiler {
     public compile(code: string) {
 
+        const source = new Source(code);
         const eventBus = new EventBus<TEventMap>();
 
         eventBus.on('startTokenization', (e) => {
@@ -23,10 +25,10 @@ export default class Compiler {
         });
 
         // Make a diagnostics reporter we can report messages to during this whole process
-        const diagnostics = new DiagReporter(code);
+        const diagnostics = new DiagReporter(source);
 
         // Tokenize the code
-        const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(code);
+        const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(source);
         console.log(chalk.bgGreenBright(' === TOKENS === '));
         console.log(chalk.bgCyan('TOKEN COUNT', tokenStream.getLength()));
         tokenStream.print();

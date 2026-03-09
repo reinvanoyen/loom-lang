@@ -1,5 +1,6 @@
-import { Position } from './types/tokenization';
+import Source from '@/compiler/Source';
 import chalk from 'chalk';
+import Span from '@/core/Span';
 
 export enum MessageCode {
 
@@ -32,19 +33,19 @@ type DiagnosticMessage = {
     code: MessageCode,
     message: string;
     nodeId?: number;
-    span?: { start: Position, end: Position };
+    span?: Span;
 };
 
 export default class DiagReporter {
     /**
      * @private
      */
-    private source: string;
+    private readonly source: Source;
 
     /**
      * @param source
      */
-    constructor(source: string) {
+    constructor(source: Source) {
         this.source = source;
     }
 
@@ -82,25 +83,24 @@ export default class DiagReporter {
     }
 
     /**
-     * Return a small snippet around an absolute string index.
-     * - Uses code-unit indices (normal JS string indexing).
-     * - Expands tabs in the printed snippet so the caret lines up (configurable).
+     * @param span
+     * @private
      */
-    private sourceSnippet(source: string, span: { start: Position, end: Position }): SourceSnippet {
-        const line = span.start.line;
-        const column = span.start.column-1;
-        const lines = source.split('\n');
-        const lineNumber = `${column}: `;
+    private sourceSnippet(span: Span): SourceSnippet {
 
-        return { snippet: `${lineNumber}${lines[line - 1] || ''}`, caretLine: ' '.repeat(lineNumber.length)+' '.repeat(column)+'^' };
+        const snippet = this.source.slice(span.getStart(), span.getEnd());
+
+        return {
+            snippet,
+            caretLine: chalk.red('^'+'~'.repeat(snippet.length-1))
+        };
     }
 
     public print() {
+
         this.messages.forEach(message => {
 
-            const startPos = `${message.span?.start.line}:${message.span?.start.column}`;
-            const endPos = `${message.span?.end.line}:${message.span?.end.column}`;
-            const formatted = `${MessageCode[message.code]}: ${message.message} ${startPos} -> ${endPos}`;
+            const formatted = `${MessageCode[message.code]}: ${message.message} ${message.span ? this.source.formatSpan(message.span) : ''}`;
 
             if (message.severity === 'error') {
                 console.log(chalk.red(`${formatted}`));
@@ -115,7 +115,7 @@ export default class DiagReporter {
             }
 
             if (message.span) {
-                const { snippet, caretLine } = this.sourceSnippet(this.source, message.span);
+                const { snippet, caretLine } = this.sourceSnippet(message.span);
                 console.log(snippet);
                 console.log(caretLine);
             }
