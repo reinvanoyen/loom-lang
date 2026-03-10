@@ -9,29 +9,30 @@ export default class Span {
     /**
      * @private
      */
-    private startPosition: Position;
+    private start: Position;
 
     /**
      * @private
      */
-    private endPosition: Position;
+    private end: Position;
 
     /**
+     *
      * @param filename
-     * @param startPosition
-     * @param endPosition
+     * @param start
+     * @param end
      */
-    constructor(filename: string, startPosition: Position, endPosition: Position) {
+    constructor(filename: string, start: Position, end: Position) {
         this.filename = filename;
-        this.startPosition = startPosition;
-        this.endPosition = endPosition;
+        this.start = start;
+        this.end = end;
     }
 
     public getStart(): number {
-        return this.startPosition.index;
+        return this.start;
     }
 
     public getEnd(): number {
-        return this.endPosition.index;
+        return this.end;
     }
 }

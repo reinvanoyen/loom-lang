@@ -94,7 +94,7 @@ export default class TokenStream {
     public print() {
         const output: string[] = [];
         this.tokens.forEach(token => {
-            output.push(chalk.grey(`${token.type}(${chalk.blue(token.value)}) ${token.startPosition.index} -> ${token.endPosition.index}`));
+            output.push(chalk.grey(`${token.type}(${chalk.blue(token.value)}) ${token.span.getStart()} -> ${token.span.getEnd()}`));
         });
 
         console.log(output.join('\n'));

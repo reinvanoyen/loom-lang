@@ -83,7 +83,7 @@ export default class Parser {
     /**
      * @private
      */
-    private lastErrorIndex: number | null = null;
+    private lastErrorIndex: Nullable<number> = null;
 
     /**
      * @param tokenStream
@@ -828,16 +828,16 @@ export default class Parser {
         const token = at ?? this.peek();
         if (!token) return;
 
-        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.startPosition.index) {
+        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.start) {
             return;
         }
 
         this.reporter.error({
             message,
             code,
-            span: new Span('filename', token.startPosition, token.endPosition),
+            span: new Span('filename', token.start, token.end),
         });
 
-        this.lastErrorIndex = token.startPosition.index;
+        this.lastErrorIndex = token.start;
     }
 }
