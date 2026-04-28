@@ -3,17 +3,18 @@ import EventBus from '@/core/bus/EventBus';
 import DiagReporter from '@/compiler/DiagReporter';
 import { TEventMap } from '@/compiler/types/bus';
 import { TokenType } from '@/compiler/types/tokenization';
+import Source from '@/compiler/Source';
 
-function createLexer(): { lexer: Lexer; reporter: DiagReporter } {
+function createLexer(source: string): { lexer: Lexer; reporter: DiagReporter } {
     const events = new EventBus<TEventMap>();
-    const reporter = new DiagReporter();
+    const reporter = new DiagReporter(new Source(source));
     const lexer = new Lexer(events, reporter);
     return { lexer, reporter };
 }
 
 function tokenize(source: string) {
-    const { lexer } = createLexer();
-    const stream = lexer.tokenize(source);
+    const { lexer } = createLexer(source);
+    const stream = lexer.tokenize(new Source(source));
     return stream.getTokens();
 }
 
@@ -215,11 +216,11 @@ describe('Lexer', () => {
     describe('event emission', () => {
         it('emits startTokenization when tokenizing', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new DiagReporter();
+            const reporter = new DiagReporter(new Source('foo'));
             const lexer = new Lexer(events, reporter);
             const payloads: { code: string }[] = [];
             events.on('startTokenization', (p) => payloads.push(p));
-            lexer.tokenize('foo');
+            lexer.tokenize(new Source('foo'));
             expect(payloads).toHaveLength(1);
             expect(payloads[0].code).toBe('foo');
         });

@@ -32,6 +32,9 @@ export default class TypeTable {
         return null;
     }
 
+    /**
+     *
+     */
     public print() {
         console.table(this.types);
     }

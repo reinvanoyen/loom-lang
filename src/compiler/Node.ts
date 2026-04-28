@@ -2,7 +2,6 @@ import { Nullable } from './types/nullable';
 import { AttributeValue } from './types/attribute';
 import Symbol from './Symbol';
 import Compiler from './Compiler';
-import Binder from './Binder';
 import TypeResolver from './TypeResolver';
 import TypeChecker from './TypeChecker';
 import TypeTable from './TypeTable';
@@ -167,12 +166,6 @@ export default class Node {
      */
     compile(compiler: Compiler) {
         // todo
-    }
-
-    bind(binder: Binder) {
-        this.getChildren().forEach(child => {
-            child.bind(binder);
-        });
     }
 
     resolve(typeResolver: TypeResolver) {

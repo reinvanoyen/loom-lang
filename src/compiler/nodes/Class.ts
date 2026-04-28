@@ -1,7 +1,4 @@
 import Node from '../Node';
-import Binder from '../Binder';
-import Compiler from '../Compiler';
-import Symbol from '../Symbol';
 import TypeResolver from '../TypeResolver';
 
 export default class Class extends Node {
@@ -10,40 +7,9 @@ export default class Class extends Node {
         return 'CLS';
     }
 
-    bind(binder: Binder) {
-        const id = this.getId();
-        const value = this.getValue();
-
-        if (id && value) {
-            const symbol = new Symbol('class', id);
-            this.setSymbol(symbol);
-            binder.add(value, symbol);
-        }
-    }
-
     resolve(typeResolver: TypeResolver) {
         this.getChildren().forEach(child => {
             child.resolve(typeResolver);
         });
-    }
-
-    compile(compiler: Compiler) {
-
-        /*
-        // Get current namespace
-        const namespace = compiler.symbols().getNamespace();
-
-        // Build classname
-        const className = `${namespace ? namespace+'-' : '' }${this.getValue()}`;
-
-        // Write CSS :)
-        compiler.writeLine(`.${className} {`);
-
-        this.getChildren().forEach(child => {
-            child.compile(compiler);
-        });
-
-        compiler.writeLine('}');
-        */
     }
 }

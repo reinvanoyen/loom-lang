@@ -1,28 +1,12 @@
 import Node from '../Node';
 import Type from './Type';
 import Compiler from '../Compiler';
-import Binder from '../Binder';
-import Symbol from '../Symbol';
 import TypeResolver from '../TypeResolver';
 
 export default class TypeDeclaration extends Node {
 
     getName(): string {
         return 'TYPE_DECL';
-    }
-
-    bind(binder: Binder) {
-
-        const id = this.getId();
-        const value = this.getValue();
-
-        if (id && value) {
-            const symbol = new Symbol('type', id);
-            this.setSymbol(symbol);
-            binder.addType(value, symbol);
-        }
-
-        this.getChildren().forEach(child => child.bind(binder));
     }
 
     resolve(typeResolver: TypeResolver) {
