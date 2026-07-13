@@ -214,8 +214,6 @@ export default class Lexer {
         // Reset the current token value
         this.value = '';
 
-        console.log(this.peek());
-
         if (
             grammar.REGEX_RAW_BLOCK_START.test(this.peek()) &&
             grammar.REGEX_RAW_BLOCK_INSIDE.test(this.peek(1))
