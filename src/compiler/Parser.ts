@@ -828,16 +828,16 @@ export default class Parser {
         const token = at ?? this.peek();
         if (!token) return;
 
-        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.start) {
+        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.span.getStart()) {
             return;
         }
 
         this.reporter.error({
             message,
             code,
-            span: new Span('filename', token.start, token.end),
+            span: new Span('filename', token.span.getStart(), token.span.getEnd()),
         });
 
-        this.lastErrorIndex = token.start;
+        this.lastErrorIndex = token.span.getStart();
     }
 }
