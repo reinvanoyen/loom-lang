@@ -201,49 +201,6 @@ export default class Parser {
     /**
      * @private
      */
-    private parseClassBodyMembers() {
-        while (!this.tokenStream.isEOF()) {
-            if (this.peekIs(TokenType.SYMBOL, '}')) {
-                break;
-            }
-
-            const before = this.tokenStream.getCursor();
-
-            if (this.parseClassMember()) {
-                continue;
-            }
-
-            // Diagnose once, with expected starters
-            const tok = this.peek();
-            this.reportError(
-                MessageCode.E_UNEXPECTED_TOKEN,
-                `Expected '@', 'slot', or a style block in class body, got '${tok?.value ?? '<eof>'}'`
-            );
-
-            // Recover to next plausible member boundary (or end)
-            this.recoverToRestart(this.CLASS_MEMBER_SYNC);
-
-            // If we landed on a delimiter, consume it (optional)
-            if (this.peekIs(TokenType.SYMBOL, ';')) {
-                this.tokenStream.advance();
-                continue;
-            }
-
-            // Never eat the terminator
-            if (this.peekIs(TokenType.SYMBOL, '}')) {
-                break;
-            }
-
-            // Hard progress guarantee
-            if (this.tokenStream.getCursor() === before) {
-                this.tokenStream.advance();
-            }
-        }
-    }
-
-    /**
-     * @private
-     */
     private parseClassMember() {
         return (
             this.parseVariantDeclaration() ||

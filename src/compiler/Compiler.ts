@@ -13,6 +13,8 @@ import TypeTable from './TypeTable';
 import TypeResolver from './TypeResolver';
 import TypeChecker from './TypeChecker';
 import Source from '@/compiler/Source';
+import EmissionModelBuilder from '@/compiler/emitter/EmissionModelBuilder';
+import CSSEmitter from '@/compiler/emitter/CSSEmitter';
 
 export default class Compiler {
     public compile(code: string) {
@@ -69,8 +71,14 @@ export default class Compiler {
             return '';
         }
 
-        // Finally we emit
-        // todo
-        return 'CSS OUTPUT...';
+        // Build an emission model
+        const emissionModelBuilder = new EmissionModelBuilder();
+        const model = emissionModelBuilder.build(ast);
+        console.log(chalk.bgGreenBright(' === EMISSION MODEL === '));
+        console.log(model);
+
+        // Emit!
+        const emitter = new CSSEmitter();
+        return emitter.emit(model);
     }
 }

@@ -10,7 +10,7 @@ export default class AST extends Node {
 
     compile(compiler: Compiler) {
         this.getChildren().forEach(child => {
-            child.compile(compiler);
+            //child.compile(compiler);
         });
     }
 

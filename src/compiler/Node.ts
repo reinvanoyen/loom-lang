@@ -1,7 +1,6 @@
 import { Nullable } from './types/nullable';
 import { AttributeValue } from './types/attribute';
 import Symbol from './Symbol';
-import Compiler from './Compiler';
 import TypeResolver from './TypeResolver';
 import TypeChecker from './TypeChecker';
 import TypeTable from './TypeTable';
@@ -158,14 +157,6 @@ export default class Node {
      */
     removeLastChild() {
         this.children.pop();
-    }
-
-    /**
-     *
-     * @param _compiler
-     */
-    compile(compiler: Compiler) {
-        // todo
     }
 
     resolve(typeResolver: TypeResolver) {

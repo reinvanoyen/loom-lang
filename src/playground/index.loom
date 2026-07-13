@@ -2,7 +2,7 @@ namespace ui;
 
 import 'types.loom';
 
-type Size = 'small' | 'medium' | 'small';
+type Size = 'small' | 'medium' | 'large';
 type ExtraSize = Size | 'huge';
 type Intent = 'danger';
 

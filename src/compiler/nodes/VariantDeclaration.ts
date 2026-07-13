@@ -12,8 +12,4 @@ export default class VariantDeclaration extends Node {
         //typeChecker.isAssignable(typeTable.getType(this.getAttribute('name')))
         //console.log(this.getAttribute('default'), typeTable.getType());
     }
-
-    compile() {
-        // todo compile VariantDefinition
-    }
 }

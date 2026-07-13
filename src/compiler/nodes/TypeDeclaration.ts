@@ -1,6 +1,5 @@
 import Node from '../Node';
 import Type from './Type';
-import Compiler from '../Compiler';
 import TypeResolver from '../TypeResolver';
 
 export default class TypeDeclaration extends Node {
@@ -33,9 +32,5 @@ export default class TypeDeclaration extends Node {
         }
 
         typeResolver.defineType(symbol, resolvedType);
-    }
-
-    compile(compiler: Compiler) {
-        //
     }
 }
