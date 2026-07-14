@@ -1,4 +1,5 @@
 import Module from '@/compiler/Module';
+import path from 'node:path';
 
 /**
  * Purpose: The container for an entire build — entry point + every module discovered via imports.
@@ -27,30 +28,76 @@ import Module from '@/compiler/Module';
  * Load order for deterministic emission
  */
 export default class Compilation {
+    /**
+     * @private
+     */
     private readonly entryPath: string;
+
+    /**
+     * @private
+     */
     private readonly modules = new Map<string, Module>(); // key: absolute path
 
+    /**
+     * @private
+     */
+    private modulesLoadOrder: string[] = [];
+
+    /**
+     * @param entryPath
+     */
     constructor(entryPath: string) {
         this.entryPath = entryPath;
     }
 
-    getEntryPath() {
+    /**
+     *
+     */
+    public getEntryPath() {
         return this.entryPath;
     }
 
-    getEntryModule(): Module {
+    /**
+     *
+     */
+    public getEntryModule(): Module {
+        const resolved = path.resolve(this.entryPath);
+        const module = this.modules.get(resolved);
 
+        if (!module) {
+            throw new Error(`Entry module not loaded: ${resolved}`);
+        }
+
+        return module;
     }
 
-    getModules() {
+    /**
+     *
+     */
+    public getModules() {
         return this.modules;
     }
 
-    addModule(module: Module): void {
-
+    /**
+     *
+     */
+    public getModulesInLoadOrder(): Module[] {
+        return this.modulesLoadOrder.map(p => this.modules.get(p)!);
     }
 
-    hasModule(resolvedPath: string): boolean {
-        
+    /**
+     * @param module
+     */
+    public addModule(module: Module): void {
+        const key = path.resolve(module.getPath());
+        this.modules.set(key, module);
+        this.modulesLoadOrder.push(key);
+    }
+
+    /**
+     * @param resolvedPath
+     */
+    public hasModule(resolvedPath: string): boolean {
+        return this.modules.has(path.resolve(resolvedPath));
     }
 }

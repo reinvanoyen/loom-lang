@@ -17,6 +17,11 @@ export default class EmissionModelBuilder {
     private model: EmissionModel;
 
     /**
+     * @private
+     */
+    private currentNamespace: string = 'global';
+
+    /**
      *
      */
     constructor() {
@@ -43,28 +48,21 @@ export default class EmissionModelBuilder {
 
         nodes.forEach(node => {
             if (node instanceof Namespace) {
-                this.collectNamespace(node);
+                this.currentNamespace = node.getValue()!;
             }
 
             if (node instanceof Class) {
-                this.collectClass(node)
+                this.collectClass(node, this.currentNamespace)
             }
         });
     }
 
     /**
-     * @param node
-     * @private
-     */
-    private collectNamespace(node: Namespace) {
-        this.model.setNamespace(node.getValue()!);
-    }
-
-    /**
      * @param classNode
+     * @param namespace
      * @private
      */
-    private collectClass(classNode: Class) {
+    private collectClass(classNode: Class, namespace: string) {
         const parent = classNode.getStringAttribute('parent');
         const className = classNode.getValue()!;
         const nodes = classNode.getChildren();
@@ -96,6 +94,7 @@ export default class EmissionModelBuilder {
 
         const classEmission = this.model.getOrCreateClassEmission(className);
         classEmission.parent = parent || undefined;
+        classEmission.namespace = namespace;
         classEmission.ownClassStyles = ownClassStyles;
         classEmission.ownSlots = ownSlots;
         classEmission.ownSlotStyles = ownSlotStyles;

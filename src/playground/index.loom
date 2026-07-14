@@ -1,28 +1,10 @@
-namespace ui;
+namespace app;
 
 import 'types.loom';
+import 'Button.loom';
+import 'Card.loom';
 
-type Size = 'small' | 'medium' | 'large';
 type ExtraSize = Size | 'huge';
-type Intent = 'danger';
-
-class Card {
-    slot body;
-
-    {%
-        padding: 1rem;
-        background-color: white;
-    %}
-
-    slot image {%
-        border: 2px solid red;
-    %}
-
-    slot title {%
-        font-size: 2rem;
-        color: red;
-    %}
-}
 
 class ProductCard extends Card {
     {% background-color: blue; %}
@@ -31,3 +13,15 @@ class ProductCard extends Card {
         opacity: .5;
     %}
 }
+
+class SuperProductCard extends ProductCard {
+    {% background-color: red; %}
+
+    slot image {%
+        opacity: .2;
+    %}
+}
+
+class SuperButton extends Button {{%
+    background-color: red;
+%}}

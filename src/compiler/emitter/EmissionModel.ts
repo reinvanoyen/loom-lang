@@ -1,6 +1,7 @@
 
 type ClassEmission = {
     name: string; // the name of the current class
+    namespace: string;  // the namespace of the class
     parent?: string; // the parent we're extending from
 
     ownSlots: string[]; // only own slots
@@ -17,19 +18,7 @@ export default class EmissionModel {
     /**
      * @private
      */
-    private namespace: string = 'global';
-
-    /**
-     * @private
-     */
     private classes: Map<string, ClassEmission> = new Map();
-
-    /**
-     * @param namespace
-     */
-    public setNamespace(namespace: string) {
-        this.namespace = namespace;
-    }
 
     /**
      * @param name
@@ -41,6 +30,7 @@ export default class EmissionModel {
 
         this.classes.set(name, {
             name,
+            namespace: 'global',
             ownSlots: [],
             slots: [],
             ownClassStyles: [],
@@ -57,12 +47,5 @@ export default class EmissionModel {
      */
     public getClasses(): Map<string, ClassEmission> {
         return this.classes;
-    }
-
-    /**
-     *
-     */
-    public getNamespace(): string {
-        return this.namespace;
     }
 }

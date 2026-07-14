@@ -19,8 +19,7 @@ if (!fs.existsSync(filename)) {
     process.exit(1);
 }
 
-const code = fs.readFileSync(filename, 'utf-8');
-const output = Loom.make(code);
+const output = Loom.makeFromFile(filename, { debug: true });
 
 if (outputFile) {
     fs.writeFileSync(outputFile, output, 'utf-8');

@@ -21,19 +21,18 @@ export default class CSSEmitter {
      */
     public emit(model: EmissionModel) {
 
-        const namespace = model.getNamespace();
         const classes = model.getClasses();
 
         classes.forEach(classEmission => {
 
             this.writeRule(
-                createClassSelector(namespace, classEmission.name),
+                createClassSelector(classEmission.namespace, classEmission.name),
                 classEmission.classStyles
             );
 
             classEmission.slots.forEach(slotName => {
                 this.writeRule(
-                    createSlotSelector(namespace, classEmission.name, slotName),
+                    createSlotSelector(classEmission.namespace, classEmission.name, slotName),
                     classEmission.slotStyles.get(slotName) ?? []
                 );
             });

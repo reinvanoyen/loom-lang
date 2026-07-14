@@ -1,84 +1,115 @@
 import chalk from 'chalk';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
 import DiagReporter from './DiagReporter';
-import Lexer from './Lexer';
-import ASTBuilder from './ASTBuilder';
 import AST from './AST';
-import IdAllocator from '../core/allocators/IdAllocator';
-import Parser from './Parser';
 import SymbolTable from './SymbolTable';
 import Binder from './Binder';
 import TypeTable from './TypeTable';
 import TypeResolver from './TypeResolver';
 import TypeChecker from './TypeChecker';
-import Source from '@/compiler/Source';
 import EmissionModelBuilder from '@/compiler/emitter/EmissionModelBuilder';
 import CSSEmitter from '@/compiler/emitter/CSSEmitter';
+import CompilationContext from '@/compiler/CompilationContext';
+import ModuleLoader from '@/compiler/ModuleLoader';
+import ModuleGraphLoader from '@/compiler/ModuleGraphLoader';
+import ProgramBuilder from '@/compiler/ProgramBuilder';
 
 export default class Compiler {
-    public compile(code: string) {
 
-        const source = new Source(code);
-        const eventBus = new EventBus<TEventMap>();
+    /**
+     * @param entryPath
+     * @param opts
+     */
+    public compileFile(entryPath: string, opts?: { debug?: boolean }): string {
 
-        eventBus.on('startTokenization', (e) => {
-            console.log(e.code);
-        });
+        const context = this.createContext(opts?.debug ?? false);
+        const loader = new ModuleLoader(context);
+        const graphLoader = new ModuleGraphLoader(loader);
+        const compilation = graphLoader.loadGraph(entryPath);
 
-        // Make a diagnostics reporter we can report messages to during this whole process
-        const diagnostics = new DiagReporter(source);
+        // Check ALL modules for parse errors (not just entry)
+        for (const module of compilation.getModules().values()) {
+            if (module.getDiagnosticsReporter().hasErrors()) {
+                if (context.debug) {
+                    module.getDiagnosticsReporter().print();
+                }
+                return '';
+            }
+        }
+        
+        const program = new ProgramBuilder().build(compilation);
+        const diagnostics = compilation.getEntryModule().getDiagnosticsReporter(); // ok for now
+        return this.compileAst(program, diagnostics, context);
+    }
 
-        // Tokenize the code
-        const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(source);
-        console.log(chalk.bgGreenBright(' === TOKENS === '));
-        console.log(chalk.bgCyan('TOKEN COUNT', tokenStream.getLength()));
-        tokenStream.print();
+    /**
+     * @param debug
+     * @private
+     */
+    private createContext(debug = false): CompilationContext {
+        const context = new CompilationContext({ debug });
 
-        // Parse the tokens into an AST
-        const builder = new ASTBuilder(new AST(), new IdAllocator());
-        const ast = (new Parser(tokenStream, builder, eventBus, diagnostics).parse());
-        console.log(chalk.bgGreenBright(' === AST === '));
-        ast.print();
+        if (debug) {
+            context.eventBus.on('startTokenization', (e) => {
+                console.log(e.code);
+            });
+        }
 
-        // Bind Symbols to AST
-        const symbolTable = new SymbolTable(new IdAllocator());
-        (new Binder(eventBus, diagnostics, symbolTable)).bind(ast);
+        return context;
+    }
 
-        console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));
-        symbolTable.print();
+    /**
+     * @param ast
+     * @param diagnostics
+     * @param context
+     * @private
+     */
+    private compileAst(ast: AST, diagnostics: DiagReporter, context: CompilationContext): string {
 
-        console.log(chalk.bgGreenBright(' === BOUND AST === '));
-        ast.print();
+        const { eventBus, idAllocator, debug } = context;
+        
+        // Bind
+        const symbolTable = new SymbolTable(idAllocator);
+        new Binder(eventBus, diagnostics, symbolTable).bind(ast);
+
+        if (debug) {
+            console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));
+            symbolTable.print();
+            console.log(chalk.bgGreenBright(' === BOUND AST === '));
+            ast.print();
+        }
 
         // Resolve types
         const typeTable = new TypeTable();
-        const resolver = new TypeResolver(eventBus, diagnostics, typeTable);
-        resolver.resolve(ast);
+        new TypeResolver(eventBus, diagnostics, typeTable).resolve(ast);
 
-        console.log(chalk.bgGreenBright(' === TYPE TABLE === '));
-        typeTable.print();
+        if (debug) {
+            console.log(chalk.bgGreenBright(' === TYPE TABLE === '));
+            typeTable.print();
+        }
 
-        // Check the types
-        // todo - this needs tons of work
-        (new TypeChecker(eventBus, diagnostics)).check(ast, typeTable);
+        // Check types
+        new TypeChecker(eventBus, diagnostics).check(ast, typeTable);
 
-        console.log(chalk.bgGreenBright(' === DIAGNOSTICS === '));
-        diagnostics.print();
+        if (debug) {
+            console.log(chalk.bgGreenBright(' === DIAGNOSTICS === '));
+            diagnostics.print();
+        }
 
         if (diagnostics.hasErrors()) {
-            console.error('Not compiling, errors found...')
+            if (debug) {
+                console.error('Not compiling, errors found...');
+            }
             return '';
         }
 
-        // Build an emission model
-        const emissionModelBuilder = new EmissionModelBuilder();
-        const model = emissionModelBuilder.build(ast);
-        console.log(chalk.bgGreenBright(' === EMISSION MODEL === '));
-        console.log(model);
+        // Emit
+        const model = new EmissionModelBuilder().build(ast);
 
-        // Emit!
-        const emitter = new CSSEmitter();
-        return emitter.emit(model);
+        if (debug) {
+            console.log(chalk.bgGreenBright(' === EMISSION MODEL === '));
+            console.log(model);
+        }
+
+        return new CSSEmitter().emit(model);
     }
 }

@@ -2,6 +2,7 @@
   padding: 1rem;
   background-color: white;
 }
+.ui-Card__text {}
 .ui-Card__body {}
 .ui-Card__image {
   border: 2px solid red;
@@ -10,17 +11,48 @@
   font-size: 2rem;
   color: red;
 }
-.ui-ProductCard {
+.ui-Button {
+  display: inline-flex;
+  align-item: center;
+  padding: .5rem 1rem;
+  background-color: blue;
+}
+.app-ProductCard {
   padding: 1rem;
   background-color: white;
   background-color: blue;
 }
-.ui-ProductCard__body {}
-.ui-ProductCard__image {
+.app-ProductCard__text {}
+.app-ProductCard__body {}
+.app-ProductCard__image {
   border: 2px solid red;
   opacity: .5;
 }
-.ui-ProductCard__title {
+.app-ProductCard__title {
   font-size: 2rem;
   color: red;
+}
+.app-SuperProductCard {
+  padding: 1rem;
+  background-color: white;
+  background-color: blue;
+  background-color: red;
+}
+.app-SuperProductCard__text {}
+.app-SuperProductCard__body {}
+.app-SuperProductCard__image {
+  border: 2px solid red;
+  opacity: .5;
+  opacity: .2;
+}
+.app-SuperProductCard__title {
+  font-size: 2rem;
+  color: red;
+}
+.app-SuperButton {
+  display: inline-flex;
+  align-item: center;
+  padding: .5rem 1rem;
+  background-color: blue;
+  background-color: red;
 }

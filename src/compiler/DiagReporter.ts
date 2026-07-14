@@ -92,7 +92,7 @@ export default class DiagReporter {
 
         return {
             snippet,
-            caretLine: chalk.red('^'+'~'.repeat(snippet.length-1))
+            caretLine: chalk.red('^'+'~'.repeat(Math.max(0, snippet.length - 1)))
         };
     }
 

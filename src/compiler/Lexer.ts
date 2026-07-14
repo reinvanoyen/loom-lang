@@ -154,13 +154,13 @@ export default class Lexer {
             this.reporter.error({
                 code: MessageCode.E_TOKEN_NOT_CLOSED,
                 message: warning,
-                span: new Span('filename', this.modeStartPosition, this.position),
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.tokens.add({
                 type: tokenToEmit,
                 value: this.value,
-                span: new Span('filename', this.modeStartPosition, this.position),
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.value = '';
@@ -267,7 +267,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.STRING,
                 value: this.value,
-                span: new Span('filename', this.modeStartPosition, this.position),
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
             this.mode = LexMode.ALL;
             this.delimiter = '';
@@ -313,7 +313,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.RAW_BLOCK,
                 value: this.value,
-                span: new Span('filename', this.modeStartPosition, this.position),
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.mode = LexMode.ALL;
@@ -337,7 +337,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.IDENT,
                 value: this.value,
-                span: new Span('filename', this.modeStartPosition, this.position),
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
             this.mode = LexMode.ALL;
         }
@@ -355,7 +355,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.NUMBER,
                 value: this.value,
-                span: new Span('filename', this.modeStartPosition, this.position),
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.mode = LexMode.ALL;
@@ -372,7 +372,7 @@ export default class Lexer {
         this.tokens.add({
             type: TokenType.SYMBOL,
             value: value,
-            span: new Span('filename', this.modeStartPosition, this.position),
+            span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
         });
         this.mode = LexMode.ALL;
     }
@@ -405,7 +405,7 @@ export default class Lexer {
         this.tokens.add({
             type: TokenType.UNKNOWN,
             value: value,
-            span: new Span('filename', this.modeStartPosition, this.position),
+            span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
         });
         this.mode = LexMode.ALL;
     }

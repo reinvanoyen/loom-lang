@@ -1,0 +1,20 @@
+namespace ui;
+
+class Card {
+    slot text;
+    slot body;
+
+    {%
+        padding: 1rem;
+        background-color: white;
+    %}
+
+    slot image {%
+        border: 2px solid red;
+    %}
+
+    slot title {%
+        font-size: 2rem;
+        color: red;
+    %}
+}

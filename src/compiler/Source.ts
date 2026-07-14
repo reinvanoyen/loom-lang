@@ -2,11 +2,17 @@ import Span from '@/core/Span';
 
 export default class Source {
     private readonly text: string;
+    private readonly filename: string;
     private readonly lineStarts: number[];
 
-    constructor(text: string) {
+    constructor(text: string, filename: string) {
         this.text = text;
         this.lineStarts = this.computeLineStarts(text);
+        this.filename = filename;
+    }
+
+    public getFilename(): string {
+        return this.filename;
     }
 
     public getText(): string {

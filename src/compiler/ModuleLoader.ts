@@ -2,6 +2,11 @@ import Module from '@/compiler/Module';
 import DiagReporter from '@/compiler/DiagReporter';
 import * as fs from 'node:fs';
 import Source from '@/compiler/Source';
+import AST from '@/compiler/AST';
+import Lexer from '@/compiler/Lexer';
+import ASTBuilder from '@/compiler/ASTBuilder';
+import Parser from '@/compiler/Parser';
+import CompilationContext from '@/compiler/CompilationContext';
 
 /**
  * Purpose: Parse a single file from disk into a Module.
@@ -21,10 +26,53 @@ import Source from '@/compiler/Source';
  * Your stub note: parseSource() still needs to be implemented (extract Lexer + Parser from Compiler).
  */
 export default class ModuleLoader {
-    public parseFile(absolutePath: string, diagnostics: DiagReporter): Module {
+    /**
+     * @private
+     */
+    private readonly context: CompilationContext;
+
+    /**
+     * @param context
+     */
+    constructor(context: CompilationContext) {
+        this.context = context;
+    }
+
+    /**
+     * @param absolutePath
+     */
+    public parseFile(absolutePath: string): Module {
+
         const text = fs.readFileSync(absolutePath, 'utf-8');
-        const source = new Source(text); // later: pass filename too
+        const source = new Source(text, absolutePath);
+        const diagnostics = new DiagReporter(source);
         const ast = this.parseSource(source, diagnostics);
-        return new Module(absolutePath, source, ast);
+
+        return new Module(absolutePath, source, ast, diagnostics);
+    }
+
+    /**
+     * @param source
+     * @param diagnostics
+     * @private
+     */
+    public parseSource(source: Source, diagnostics: DiagReporter): AST {
+        
+        const { eventBus, idAllocator, debug } = this.context;
+
+        const tokenStream = new Lexer(eventBus, diagnostics).tokenize(source);
+
+        if (debug) {
+            tokenStream.print();
+        }
+
+        const builder = new ASTBuilder(new AST(), idAllocator);
+        const ast = new Parser(tokenStream, builder, eventBus, diagnostics).parse();
+
+        if (debug) {
+            ast.print();
+        }
+
+        return ast;
     }
 }
