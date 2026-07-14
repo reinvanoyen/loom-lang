@@ -1,5 +1,5 @@
 .ui-Card {
-  padding: 2rem 1rem;
+  padding: 1rem;
   background-color: white;
 }
 .ui-Card__body {}
@@ -11,7 +11,7 @@
   color: red;
 }
 .ui-ProductCard {
-  padding: 2rem 1rem;
+  padding: 1rem;
   background-color: white;
   background-color: blue;
 }
