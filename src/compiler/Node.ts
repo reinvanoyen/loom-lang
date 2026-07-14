@@ -52,35 +52,35 @@ export default class Node {
     /**
      * @param id
      */
-    setId(id: number) {
+    public setId(id: number) {
         this.id = id;
     }
 
     /**
      *
      */
-    getId(): Nullable<number> {
+    public getId(): Nullable<number> {
         return this.id;
     }
 
     /**
      * @param symbol
      */
-    setSymbol(symbol: Symbol) {
+    public setSymbol(symbol: Symbol) {
         this.symbol = symbol;
     }
 
     /**
      *
      */
-    getSymbol() {
+    public getSymbol() {
         return this.symbol;
     }
 
     /**
      *
      */
-    getName(): string {
+    public getName(): string {
         return this.constructor.name;
     }
 
@@ -88,21 +88,21 @@ export default class Node {
      *
      * @param node
      */
-    setParent(node: Node) {
+    public setParent(node: Node) {
         this.parent = node;
     }
 
     /**
      *
      */
-    getParent(): Nullable<Node> {
+    public getParent(): Nullable<Node> {
         return this.parent;
     }
 
     /**
      *
      */
-    getValue(): Nullable<string> {
+    public getValue(): Nullable<string> {
         return this.value;
     }
 
@@ -110,21 +110,21 @@ export default class Node {
      *
      * @param node
      */
-    addChild(node: Node) {
+    public addChild(node: Node) {
         this.children.push(node);
     }
 
     /**
      *
      */
-    getChildren() {
+    public getChildren() {
         return this.children;
     }
 
     /**
      *
      */
-    hasChildren() {
+    public hasChildren() {
         return (this.children.length > 0);
     }
 
@@ -133,7 +133,7 @@ export default class Node {
      * @param name
      * @param value
      */
-    setAttribute(name: string, value: AttributeValue) {
+    public setAttribute(name: string, value: AttributeValue) {
         this.attributes[name] = value;
     }
 
@@ -141,37 +141,49 @@ export default class Node {
      *
      * @param name
      */
-    getAttribute(name: string): Nullable<AttributeValue> {
+    public getAttribute(name: string): Nullable<AttributeValue> {
         return this.attributes[name] || null;
+    }
+
+    /**
+     * @param name
+     */
+    public getStringAttribute(name: string): Nullable<string> {
+        const value = this.getAttribute(name);
+        if (typeof value === 'string') {
+            return value;
+        }
+        
+        return null;
     }
 
     /**
      *
      */
-    getAttributes(): Record<string, AttributeValue> {
+    public getAttributes(): Record<string, AttributeValue> {
         return this.attributes;
     }
 
     /**
      *
      */
-    removeLastChild() {
+    public removeLastChild() {
         this.children.pop();
     }
 
-    resolve(typeResolver: TypeResolver) {
+    public resolve(typeResolver: TypeResolver) {
         this.getChildren().forEach(child => {
             child.resolve(typeResolver);
         });
     }
 
-    check(typeChecker: TypeChecker, typeTable: TypeTable) {
+    public check(typeChecker: TypeChecker, typeTable: TypeTable) {
         this.getChildren().forEach(child => {
             child.check(typeChecker, typeTable);
         });
     }
 
-    print() {
+    public print() {
 
         const printNode = (node: Node, indentAmount: number = 0): string => {
 

@@ -1,9 +1,16 @@
+
 type ClassEmission = {
-    name: string;
-    parent?: string;
-    slots: string[];           // merged from inheritance
-    classStyles: string[];     // raw CSS bodies
-    slotStyles: Map<string, string[]>; // future: slot icon {% ... %}
+    name: string; // the name of the current class
+    parent?: string; // the parent we're extending from
+
+    ownSlots: string[]; // only own slots
+    slots: string[]; // all slots, merged from inheritance
+
+    ownClassStyles: string[]; // only own styles
+    classStyles: string[]; // all class styles, inherited
+
+    ownSlotStyles: Map<string, string[]>;
+    slotStyles: Map<string, string[]>;
 };
 
 export default class EmissionModel {
@@ -26,9 +33,36 @@ export default class EmissionModel {
 
     /**
      * @param name
-     * @param classEmission
      */
-    public registerClassEmission(name: string, classEmission: ClassEmission) {
-        this.classes.set(name, classEmission);
+    public getOrCreateClassEmission(name: string): ClassEmission {
+        if (this.classes.has(name)) {
+            return this.classes.get(name)!;
+        }
+
+        this.classes.set(name, {
+            name,
+            ownSlots: [],
+            slots: [],
+            ownClassStyles: [],
+            classStyles: [],
+            ownSlotStyles: new Map(),
+            slotStyles: new Map(),
+        });
+
+        return this.classes.get(name)!;
+    }
+
+    /**
+     *
+     */
+    public getClasses(): Map<string, ClassEmission> {
+        return this.classes;
+    }
+
+    /**
+     *
+     */
+    public getNamespace(): string {
+        return this.namespace;
     }
 }

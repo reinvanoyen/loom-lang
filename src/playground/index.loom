@@ -6,36 +6,28 @@ type Size = 'small' | 'medium' | 'large';
 type ExtraSize = Size | 'huge';
 type Intent = 'danger';
 
-type Word = string;
-
-class Button {
-
-    @size: Size = 'medium';
-    @intent: Intent | 'flashy' = 'flashy';
-
-    slot link;
+class Card {
+    slot body;
 
     {%
-        position: relative;
-        width: 100px;
-        height: 90px;
-        animation: heartbeat 1s infinite;
+        padding: 1rem;
+        background-color: white;
+    %}
+
+    slot image {%
+        border: 2px solid red;
+    %}
+
+    slot title {%
+        font-size: 2rem;
+        color: red;
     %}
 }
 
-augment class Button {
-    {%
-        position: relative;
-        width: 100px;
-        height: 90px;
-        animation: heartbeat 1s infinite;
+class ProductCard extends Card {
+    {% background-color: blue; %}
+
+    slot image {%
+        opacity: .5;
     %}
 }
-
-class Link extends Button {
-
-}
-
-class Label {{%
-    color: red;
-%}}

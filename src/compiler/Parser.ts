@@ -275,10 +275,15 @@ export default class Parser {
             );
 
             if (name) {
-                this.insertNode(new SlotDeclaration(name.value))
+                this.buildNode(new SlotDeclaration(name.value), () => {
+                    const block = this.eat(TokenType.RAW_BLOCK);
+                    if (block) {
+                        this.builder.setAttribute('contents', block.value);
+                    }
+                    this.finishSlotStatement(!!block);
+                });
             }
-
-            this.finishStatement(RecoveryContext.CLASS_MEMBER);
+            
             return true;
         }
 
@@ -686,6 +691,19 @@ export default class Parser {
             this.recoverClassMemberStatement();
             return;
         }
+    }
+
+    /**
+     * @param hasStyleBlock
+     * @private
+     */
+    private finishSlotStatement(hasStyleBlock: boolean) {
+        if (hasStyleBlock) {
+            this.eat(TokenType.SYMBOL, ';'); // optional, no error if missing
+            return;
+        }
+
+        this.finishStatement(RecoveryContext.CLASS_MEMBER); // required ;
     }
 
     /**

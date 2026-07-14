@@ -1,1 +1,26 @@
-ok
+.ui-Card {
+  padding: 2rem 1rem;
+  background-color: white;
+}
+.ui-Card__body {}
+.ui-Card__image {
+  border: 2px solid red;
+}
+.ui-Card__title {
+  font-size: 2rem;
+  color: red;
+}
+.ui-ProductCard {
+  padding: 2rem 1rem;
+  background-color: white;
+  background-color: blue;
+}
+.ui-ProductCard__body {}
+.ui-ProductCard__image {
+  border: 2px solid red;
+  opacity: .5;
+}
+.ui-ProductCard__title {
+  font-size: 2rem;
+  color: red;
+}
