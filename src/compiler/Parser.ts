@@ -183,6 +183,10 @@ export default class Parser {
                 this.builder.setAttribute('parent', header.parent);
             }
 
+            if (header.parentNamespace) {
+                this.builder.setAttribute('parentNamespace', header.parentNamespace);
+            }
+
             this.parseBlock({
                 openLabel: 'opening curly brace',
                 closeLabel: 'closing curly brace',
@@ -228,14 +232,17 @@ export default class Parser {
             return true;
         }
 
-        const nameTok = this.expectOrRecoverToRestart(
-            'class name',
-            { type: TokenType.IDENT },
-            this.CLASS_HEADER_RESTART
-        );
-        if (!nameTok) return true;
+        const classReference = this.parseQualifiedClassReference('class name', this.CLASS_HEADER_RESTART);
+        if (!classReference) {
+            return true;
+        }
 
-        this.buildNode(new ClassAugmentation(nameTok.value), () => {
+        this.buildNode(new ClassAugmentation(classReference.className), () => {
+
+            if (classReference.namespace) {
+                this.builder.setAttribute('targetNamespace', classReference.namespace);
+            }
+
             this.parseBlock({
                 openLabel: 'opening curly brace',
                 closeLabel: 'closing curly brace',
@@ -434,6 +441,34 @@ export default class Parser {
         return false;
     }
 
+    private parseQualifiedClassReference(nameLabel: string, sync: SyncToken[]): { namespace?: string; className: string } | null {
+        const first = this.expectOrRecoverToRestart(
+            nameLabel,
+            { type: TokenType.IDENT },
+            sync
+        );
+
+        if (!first) {
+            return null;
+        }
+
+        if (this.eat(TokenType.SYMBOL, '.')) {
+            const second = this.expectOrRecoverToRestart(
+                'class name',
+                { type: TokenType.IDENT },
+                sync
+            );
+
+            if (!second) {
+                return { namespace: first.value, className: '<error>' };
+            }
+
+            return { namespace: first.value, className: second.value };
+        }
+
+        return { className: first.value };
+    }
+
     private parseTypeValue() {
 
         const ident = this.eat(TokenType.IDENT);
@@ -477,7 +512,7 @@ export default class Parser {
         nameLabel: string;
         sync: SyncToken[];
         allowExtends?: boolean;
-    }): { name: string; parent?: string } | null {
+    }): { name: string; parent?: string, parentNamespace?: string } | null {
 
         if (!this.eat(TokenType.IDENT, opts.keyword)) {
             return null;
@@ -494,16 +529,19 @@ export default class Parser {
         }
 
         let parent: string | undefined;
+        let parentNamespace: string | undefined;
+
         if (opts.allowExtends && this.eat(TokenType.IDENT, 'extends')) {
-            const p = this.expectOrRecoverToRestart(
-                'parent class name',
-                { type: TokenType.IDENT },
-                opts.sync
-            );
-            if (p) parent = p.value;
+
+            const classReference = this.parseQualifiedClassReference('class name', this.CLASS_HEADER_RESTART);
+
+            if (classReference) {
+                parent = classReference.className;
+                parentNamespace = classReference.namespace;
+            }
         }
 
-        return { name: nameTok.value, parent };
+        return { name: nameTok.value, parent, parentNamespace };
     }
 
     /**

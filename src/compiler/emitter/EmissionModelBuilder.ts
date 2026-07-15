@@ -1,11 +1,12 @@
 import AST from '@/compiler/AST';
 import Namespace from '@/compiler/nodes/Namespace';
-import EmissionModel from '@/compiler/emitter/EmissionModel';
+import EmissionModel, { ClassEmission } from '@/compiler/emitter/EmissionModel';
 import Class from '@/compiler/nodes/Class';
 import StyleBlock from '@/compiler/nodes/StyleBlock';
 import SlotDeclaration from '@/compiler/nodes/SlotDeclaration';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
 import Node from '@/compiler/Node';
+import { namespacedKey } from '@/compiler/helpers';
 
 /**
  * Semantic extraction from AST
@@ -64,6 +65,7 @@ export default class EmissionModelBuilder {
      */
     private collectClass(classNode: Class, namespace: string) {
         const parent = classNode.getStringAttribute('parent');
+        const parentNamespace = classNode.getStringAttribute('parentNamespace');
         const className = classNode.getValue()!;
         const nodes = classNode.getChildren();
 
@@ -84,7 +86,7 @@ export default class EmissionModelBuilder {
                 const isStyleOnly =
                     contents !== null &&
                     (parent !== null && parent !== undefined) &&
-                    this.classHasSlot(parent, slotName);
+                    this.classHasSlot(namespacedKey(parent, parentNamespace ?? namespace), slotName);
 
                 if (!isStyleOnly && !ownSlots.includes(slotName)) {
                     ownSlots.push(slotName);
@@ -92,8 +94,9 @@ export default class EmissionModelBuilder {
             }
         });
 
-        const classEmission = this.model.getOrCreateClassEmission(className);
+        const classEmission = this.model.getOrCreateClassEmission(namespace, className);
         classEmission.parent = parent || undefined;
+        classEmission.parentNamespace = parentNamespace || undefined;
         classEmission.namespace = namespace;
         classEmission.ownClassStyles = ownClassStyles;
         classEmission.ownSlots = ownSlots;
@@ -138,12 +141,15 @@ export default class EmissionModelBuilder {
         let inherited: string[] = [];
 
         if (classEmission.parent) {
-            const parentCls = this.model.getClasses().get(classEmission.parent);
-            if (!parentCls) {
-                // todo
-                // report unknown parent (binder should catch this eventually)
-            } else {
-                inherited = this.resolveSlotsForClass(classEmission.parent, visiting);
+            const nsParentClassName = this.parentKey(classEmission);
+            if( nsParentClassName) {
+                const parentClassEmission = this.model.getClasses().get(nsParentClassName);
+                if (!parentClassEmission) {
+                    // todo
+                    // report unknown parent (binder should catch this eventually)
+                } else {
+                    inherited = this.resolveSlotsForClass(nsParentClassName, visiting);
+                }
             }
         }
 
@@ -187,12 +193,15 @@ export default class EmissionModelBuilder {
         let inherited: string[] = [];
 
         if (classEmission.parent) {
-            const parent = this.model.getClasses().get(classEmission.parent);
+            const nsParentClassName = this.parentKey(classEmission);
 
-            if (!parent) {
-                // report unknown parent
-            } else {
-                inherited = this.resolveStylesForClass(classEmission.parent, visiting);
+            if (nsParentClassName) {
+                const parentClassEmission = this.model.getClasses().get(nsParentClassName);
+                if (!parentClassEmission) {
+                    // todo report unknown parent
+                } else {
+                    inherited = this.resolveStylesForClass(nsParentClassName, visiting);
+                }
             }
         }
 
@@ -225,12 +234,14 @@ export default class EmissionModelBuilder {
 
         // Parent slot styles first
         if (classEmission.parent) {
-            const parent = this.model.getClasses().get(classEmission.parent);
-
-            if (parent) {
-                const inherited = this.resolveSlotStylesForClass(classEmission.parent, visiting);
-                for (const [slot, styles] of inherited) {
-                    merged.set(slot, [...styles]);
+            const nsParentClassName = this.parentKey(classEmission);
+            if (nsParentClassName) {
+                const parentClassEmission = this.model.getClasses().get(nsParentClassName);
+                if (parentClassEmission) {
+                    const inherited = this.resolveSlotStylesForClass(nsParentClassName, visiting);
+                    for (const [slot, styles] of inherited) {
+                        merged.set(slot, [...styles]);
+                    }
                 }
             }
         }
@@ -265,13 +276,40 @@ export default class EmissionModelBuilder {
      * @private
      */
     private applyClassAugmentation(classAugNode: ClassAugmentation) {
-        const className = classAugNode.getValue()!;
-        const nodes = classAugNode.getChildren();
+        const symbol = classAugNode.getSymbol();
+        const className = classAugNode.getValue();
 
-        const classStyles = this.extractStyleBlocks(nodes);
+        // No symbol or className
+        if (!symbol || !className) {
+            return;
+        }
 
-        const classEmission = this.model.getOrCreateClassEmission(className);
+        // Get the namespace
+        const namespace = symbol.getNamespace() ?? 'global';
+
+        const classEmission = this.findClassEmission(namespace, className);
+        if (!classEmission) {
+            // todo report with diagnostics
+            return;
+        }
+
+        // Add the class styles to the classEmission
+        const classStyles = this.extractStyleBlocks(classAugNode.getChildren());
         classEmission.ownClassStyles.push(...classStyles);
+    }
+
+    /**
+     * @param namespace
+     * @param className
+     * @private
+     */
+    private findClassEmission(namespace: string, className: string) {
+        for (const emission of this.model.getClasses().values()) {
+            if (emission.namespace === namespace && emission.name === className) {
+                return emission;
+            }
+        }
+        return undefined;
     }
 
     /**
@@ -314,9 +352,28 @@ export default class EmissionModelBuilder {
         }
 
         if (classEmission.parent) {
-            return this.classHasSlot(classEmission.parent, slotName);
+            const parentKey = this.parentKey(classEmission);
+            if (parentKey) {
+                return this.classHasSlot(parentKey, slotName);
+            }
         }
 
         return false;
+    }
+
+    /**
+     * @param emission
+     * @private
+     */
+    private parentKey(emission: ClassEmission): string | undefined {
+
+        if (!emission.parent) {
+            return undefined;
+        }
+
+        return namespacedKey(
+            emission.parent,
+            emission.parentNamespace ?? emission.namespace
+        );
     }
 }

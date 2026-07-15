@@ -8,3 +8,7 @@ export function resolveImport(specifier: string, fromPath: string): string {
 
     return path.resolve(path.dirname(fromPath), specifier);
 }
+
+export function namespacedKey(name: string, namespace?: string | null): string {
+    return ! namespace ? name : `${namespace}::${name}`;
+}

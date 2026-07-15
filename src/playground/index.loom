@@ -1,27 +1,7 @@
 namespace app;
 
 import 'types.loom';
-import 'Button.loom';
-import 'Card.loom';
+import 'ui/Button.loom';
+import 'ui/Card.loom';
 
 type ExtraSize = Size | 'huge';
-
-class ProductCard extends Card {
-    {% background-color: blue; %}
-
-    slot image {%
-        opacity: .5;
-    %}
-}
-
-class SuperProductCard extends ProductCard {
-    {% background-color: red; %}
-
-    slot image {%
-        opacity: .2;
-    %}
-}
-
-class SuperButton extends Button {{%
-    background-color: red;
-%}}

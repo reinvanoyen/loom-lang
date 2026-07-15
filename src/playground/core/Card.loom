@@ -1,9 +1,6 @@
-namespace ui;
+namespace core;
 
 class Card {
-    slot text;
-    slot body;
-
     {%
         padding: 1rem;
         background-color: white;
@@ -13,8 +10,5 @@ class Card {
         border: 2px solid red;
     %}
 
-    slot title {%
-        font-size: 2rem;
-        color: red;
-    %}
+    slot body;
 }

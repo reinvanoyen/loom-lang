@@ -1,8 +1,11 @@
+import { namespacedKey } from '@/compiler/helpers';
 
-type ClassEmission = {
+export type ClassEmission = {
     name: string; // the name of the current class
     namespace: string;  // the namespace of the class
+
     parent?: string; // the parent we're extending from
+    parentNamespace?: string; // the parent's namespace
 
     ownSlots: string[]; // only own slots
     slots: string[]; // all slots, merged from inheritance
@@ -21,16 +24,22 @@ export default class EmissionModel {
     private classes: Map<string, ClassEmission> = new Map();
 
     /**
+     * @param namespace
      * @param name
      */
-    public getOrCreateClassEmission(name: string): ClassEmission {
-        if (this.classes.has(name)) {
-            return this.classes.get(name)!;
+    public getOrCreateClassEmission(namespace: string, name: string): ClassEmission {
+
+        const nsKey = namespacedKey(name, namespace);
+
+        if (this.classes.has(nsKey)) {
+            return this.classes.get(nsKey)!;
         }
 
-        this.classes.set(name, {
+        this.classes.set(nsKey, {
             name,
             namespace: 'global',
+            parent: undefined,
+            parentNamespace: undefined,
             ownSlots: [],
             slots: [],
             ownClassStyles: [],
@@ -39,7 +48,7 @@ export default class EmissionModel {
             slotStyles: new Map(),
         });
 
-        return this.classes.get(name)!;
+        return this.classes.get(nsKey)!;
     }
 
     /**

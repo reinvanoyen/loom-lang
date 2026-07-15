@@ -131,6 +131,7 @@ export default class Binder {
     private bindClassAugmentation(node: ClassAugmentation) {
         const id = node.getId();
         const value = node.getValue();
+        const targetNamespace = node.getStringAttribute('targetNamespace');
 
         if (!id) {
             // todo - do we need to report this?
@@ -142,7 +143,7 @@ export default class Binder {
             return;
         }
 
-        const symbol = this.get(value);
+        const symbol = targetNamespace ? this.getInNamespace(targetNamespace, value) : this.get(value);
 
         if (! symbol) {
             // todo - do we need to report this?
@@ -215,6 +216,24 @@ export default class Binder {
         }
         return this.symbolTable.getSymbol(this.currentNamespace, name);
     }
+
+    /**
+     * @param ns
+     * @param name
+     * @private
+     */
+    private getInNamespace(ns: Namespace, name: string): Symbol | null {
+        if (!this.symbolTable.hasSymbol(ns, name)) {
+            this.reporter.error({
+                code: MessageCode.E_UNDEFINED_SYMBOL,
+                message: `Binding error: couldn't find symbol '${ns}.${name}'`,
+            });
+            return null;
+        }
+
+        return this.symbolTable.getSymbol(ns, name)!;
+    }
+
 
     /**
      * @param name

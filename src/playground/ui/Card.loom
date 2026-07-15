@@ -1,0 +1,7 @@
+namespace ui;
+
+import '../core/Card.loom';
+
+class Card extends core.Card {{%
+    border: 1px solid black;
+%}}
