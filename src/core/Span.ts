@@ -28,6 +28,10 @@ export default class Span {
         this.end = end;
     }
 
+    public getFilename(): string {
+        return this.filename;
+    }
+
     public getStart(): number {
         return this.start;
     }

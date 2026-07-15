@@ -17,7 +17,7 @@
 .ui-Card__body {}
 .ui-Button {
   display: inline-flex;
-  align-item: center;
+  align-items: center;
   padding: .5rem 1rem;
   background-color: blue;
 }

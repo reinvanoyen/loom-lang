@@ -21,6 +21,9 @@ export enum MessageCode {
     E_SLOT_AUGMENT_FORBIDDEN,
     E_SLOT_DUPLICATE,
     E_SLOT_UNKNOWN,
+
+    E_IMPORT_NOT_FOUND,
+    E_IMPORT_CYCLE,
 }
 
 type SourceSnippet = {
@@ -28,25 +31,25 @@ type SourceSnippet = {
     caretLine: string; // caret pointing at index (best effort)
 };
 
+type MessageSeverity = 'info' | 'warning' | 'error';
+
 type DiagnosticMessage = {
-    severity: 'info' | 'warning' | 'error';
+    severity: MessageSeverity;
     code: MessageCode,
     message: string;
     nodeId?: number;
     span?: Span;
 };
 
-export default class DiagReporter {
-    /**
-     * @private
-     */
-    private readonly source: Source;
+export default class Diagnostics {
+
+    private sources = new Map<string, Source>();
 
     /**
      * @param source
      */
-    constructor(source: Source) {
-        this.source = source;
+    public registerSource(source: Source) {
+        this.sources.set(source.getFilename(), source);
     }
 
     /**
@@ -88,7 +91,13 @@ export default class DiagReporter {
      */
     private sourceSnippet(span: Span): SourceSnippet {
 
-        const snippet = this.source.slice(span.getStart(), span.getEnd());
+        const source = this.sources.get(span.getFilename());
+
+        if (! source) {
+            return { snippet: '', caretLine: '' };
+        }
+
+        const snippet = source.slice(span.getStart(), span.getEnd());
 
         return {
             snippet,
@@ -100,19 +109,18 @@ export default class DiagReporter {
 
         this.messages.forEach(message => {
 
-            const formatted = `${MessageCode[message.code]}: ${message.message} ${message.span ? this.source.formatSpan(message.span) : ''}`;
+            const filename = message.span?.getFilename() || '';
+            const source = this.sources.get(filename);
 
-            if (message.severity === 'error') {
-                console.log(chalk.red(`${formatted}`));
+            if (! source) {
+                console.log(this.createMessage(message.message, message.severity));
+                return;
             }
 
-            if (message.severity === 'warning') {
-                console.log(chalk.yellow(`${formatted}`));
-            }
+            const location = message.span ? source.formatLocation(message.span) : 'unknown location';
+            const formatted = `${MessageCode[message.code]}: ${message.message} ${message.span ? source.formatSpan(message.span) : ''}`;
 
-            if (message.severity === 'info') {
-                console.log(chalk.grey(`${formatted}`));
-            }
+            console.log(`${location}: ${this.createMessage(formatted, message.severity)}`);
 
             if (message.span) {
                 const { snippet, caretLine } = this.sourceSnippet(message.span);
@@ -120,5 +128,24 @@ export default class DiagReporter {
                 console.log(caretLine);
             }
         });
+    }
+
+    /**
+     * @param message
+     * @param severity
+     * @private
+     */
+    private createMessage(message: string, severity: MessageSeverity) {
+        if (severity === 'error') {
+            return chalk.red(`${message}`);
+        }
+
+        if (severity === 'warning') {
+            return chalk.yellow(`${message}`);
+        }
+
+        if (severity === 'info') {
+            return chalk.grey(`${message}`);
+        }
     }
 }

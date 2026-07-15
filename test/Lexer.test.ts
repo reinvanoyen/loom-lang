@@ -1,13 +1,13 @@
 import Lexer from '@/compiler/Lexer';
 import EventBus from '@/core/bus/EventBus';
-import DiagReporter from '@/compiler/DiagReporter';
+import Diagnostics from '@/compiler/Diagnostics';
 import { TEventMap } from '@/compiler/types/bus';
 import { TokenType } from '@/compiler/types/tokenization';
 import Source from '@/compiler/Source';
 
-function createLexer(source: string): { lexer: Lexer; reporter: DiagReporter } {
+function createLexer(source: string): { lexer: Lexer; reporter: Diagnostics } {
     const events = new EventBus<TEventMap>();
-    const reporter = new DiagReporter(new Source(source));
+    const reporter = new Diagnostics(new Source(source));
     const lexer = new Lexer(events, reporter);
     return { lexer, reporter };
 }
@@ -190,7 +190,7 @@ describe('Lexer', () => {
     describe('unterminated string', () => {
         it('emits string token and reports error for unterminated double quote', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new DiagReporter();
+            const reporter = new Diagnostics();
             const lexer = new Lexer(events, reporter);
             const stream = lexer.tokenize('"hello');
             const tokens = stream.getTokens();
@@ -203,7 +203,7 @@ describe('Lexer', () => {
     describe('unterminated raw block', () => {
         it('emits raw block token and reports error for unterminated block', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new DiagReporter();
+            const reporter = new Diagnostics();
             const lexer = new Lexer(events, reporter);
             const stream = lexer.tokenize('{% open');
             const tokens = stream.getTokens();
@@ -216,7 +216,7 @@ describe('Lexer', () => {
     describe('event emission', () => {
         it('emits startTokenization when tokenizing', () => {
             const events = new EventBus<TEventMap>();
-            const reporter = new DiagReporter(new Source('foo'));
+            const reporter = new Diagnostics(new Source('foo'));
             const lexer = new Lexer(events, reporter);
             const payloads: { code: string }[] = [];
             events.on('startTokenization', (p) => payloads.push(p));

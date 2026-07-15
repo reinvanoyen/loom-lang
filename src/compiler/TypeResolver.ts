@@ -5,7 +5,7 @@ import { ResolvedType } from './types/analyzer';
 import IdentifierType from '@/compiler/nodes/IdentifierType';
 import StringType from '@/compiler/nodes/StringType';
 import Symbol from './Symbol';
-import DiagReporter, { MessageCode } from './DiagReporter';
+import Diagnostics, { MessageCode } from './Diagnostics';
 import { Nullable } from './types/nullable';
 import EventBus from '../core/bus/EventBus';
 import { TEventMap } from './types/bus';
@@ -26,14 +26,14 @@ export default class TypeResolver {
     /**
      * @private
      */
-    private reporter: DiagReporter;
+    private reporter: Diagnostics;
 
     /**
      * @param events
      * @param reporter
      * @param typeTable
      */
-    constructor(events: EventBus<TEventMap>, reporter: DiagReporter, typeTable: TypeTable) {
+    constructor(events: EventBus<TEventMap>, reporter: Diagnostics, typeTable: TypeTable) {
         this.events = events;
         this.reporter = reporter;
         this.typeTable = typeTable;

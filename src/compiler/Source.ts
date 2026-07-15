@@ -57,6 +57,16 @@ export default class Source {
         };
     }
 
+    public formatLocation(span: Span): string {
+        const location = this.getFilename();
+        const start = this.positionAt(span.getStart());
+
+        const line = start.line;
+        const position = start.column;
+
+        return `${location}:${line}:${position}`;
+    }
+
     public formatSpan(span: Span): string {
         const start = this.positionAt(span.getStart());
         const end = this.positionAt(span.getEnd());

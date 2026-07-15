@@ -1,5 +1,4 @@
 import Module from '@/compiler/Module';
-import DiagReporter from '@/compiler/DiagReporter';
 import * as fs from 'node:fs';
 import Source from '@/compiler/Source';
 import AST from '@/compiler/AST';
@@ -45,20 +44,20 @@ export default class ModuleLoader {
 
         const text = fs.readFileSync(absolutePath, 'utf-8');
         const source = new Source(text, absolutePath);
-        const diagnostics = new DiagReporter(source);
-        const ast = this.parseSource(source, diagnostics);
+        const ast = this.parseSource(source);
 
-        return new Module(absolutePath, source, ast, diagnostics);
+        return new Module(absolutePath, source, ast, this.context.diagnostics);
     }
 
     /**
      * @param source
-     * @param diagnostics
      * @private
      */
-    public parseSource(source: Source, diagnostics: DiagReporter): AST {
+    public parseSource(source: Source): AST {
         
-        const { eventBus, idAllocator, debug } = this.context;
+        const { eventBus, idAllocator, debug, diagnostics } = this.context;
+
+        diagnostics.registerSource(source);
 
         const tokenStream = new Lexer(eventBus, diagnostics).tokenize(source);
 

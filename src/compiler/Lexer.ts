@@ -2,7 +2,7 @@ import grammar from './grammar';
 import { LexMode, Position, TokenType } from './types/tokenization';
 import EventBus from '../core/bus/EventBus';
 import { TEventMap } from './types/bus';
-import DiagReporter, { MessageCode } from './DiagReporter';
+import Diagnostics, { MessageCode } from './Diagnostics';
 import TokenStream from './TokenStream';
 import Source from '@/compiler/Source';
 import { Nullable } from '@/compiler/types/nullable';
@@ -68,13 +68,13 @@ export default class Lexer {
     /**
      * @private
      */
-    private reporter: DiagReporter;
+    private reporter: Diagnostics;
 
     /**
      * @param events
      * @param reporter
      */
-    constructor(events: EventBus<TEventMap>, reporter: DiagReporter) {
+    constructor(events: EventBus<TEventMap>, reporter: Diagnostics) {
         this.events = events;
         this.reporter = reporter;
         this.tokens = new TokenStream();

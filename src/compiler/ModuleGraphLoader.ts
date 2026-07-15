@@ -3,6 +3,8 @@ import path from 'node:path';
 import ModuleLoader from '@/compiler/ModuleLoader';
 import fs from 'fs';
 import { resolveImport } from '@/compiler/helpers';
+import CompilationContext from '@/compiler/CompilationContext';
+import { MessageCode } from '@/compiler/Diagnostics';
 
 export default class ModuleGraphLoader {
     /**
@@ -11,10 +13,16 @@ export default class ModuleGraphLoader {
     private readonly loader: ModuleLoader;
 
     /**
+     * @private
+     */
+    private readonly context: CompilationContext;
+
+    /**
      * @param loader
      */
-    constructor(loader: ModuleLoader) {
+    constructor(loader: ModuleLoader, context: CompilationContext) {
         this.loader = loader;
+        this.context = context;
     }
 
     /**
@@ -28,15 +36,23 @@ export default class ModuleGraphLoader {
         const load = (resolved: string) => {
             resolved = path.resolve(resolved);
 
-            if (compilation.hasModule(resolved)) return;
+            if (compilation.hasModule(resolved)) {
+                return;
+            }
 
             if (visiting.has(resolved)) {
-                // todo: diagnostics E_IMPORT_CYCLE
+                this.context.diagnostics.error({
+                    code: MessageCode.E_IMPORT_CYCLE,
+                    message: `Cyclic imports at ${resolved}`,
+                });
                 return;
             }
 
             if (!fs.existsSync(resolved)) {
-                // todo: diagnostics E_IMPORT_NOT_FOUND
+                this.context.diagnostics.error({
+                    code: MessageCode.E_IMPORT_NOT_FOUND,
+                    message: `Import not found at ${resolved}`,
+                });
                 return;
             }
 

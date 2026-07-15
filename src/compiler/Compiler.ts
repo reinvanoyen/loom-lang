@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import DiagReporter from './DiagReporter';
 import AST from './AST';
 import SymbolTable from './SymbolTable';
 import Binder from './Binder';
@@ -23,22 +22,10 @@ export default class Compiler {
 
         const context = this.createContext(opts?.debug ?? false);
         const loader = new ModuleLoader(context);
-        const graphLoader = new ModuleGraphLoader(loader);
+        const graphLoader = new ModuleGraphLoader(loader, context);
         const compilation = graphLoader.loadGraph(entryPath);
-
-        // Check ALL modules for parse errors (not just entry)
-        for (const module of compilation.getModules().values()) {
-            if (module.getDiagnosticsReporter().hasErrors()) {
-                if (context.debug) {
-                    module.getDiagnosticsReporter().print();
-                }
-                return '';
-            }
-        }
-        
         const program = new ProgramBuilder().build(compilation);
-        const diagnostics = compilation.getEntryModule().getDiagnosticsReporter(); // ok for now
-        return this.compileAst(program, diagnostics, context);
+        return this.compileAst(program, context);
     }
 
     /**
@@ -59,13 +46,12 @@ export default class Compiler {
 
     /**
      * @param ast
-     * @param diagnostics
      * @param context
      * @private
      */
-    private compileAst(ast: AST, diagnostics: DiagReporter, context: CompilationContext): string {
+    private compileAst(ast: AST, context: CompilationContext): string {
 
-        const { eventBus, idAllocator, debug } = context;
+        const { eventBus, idAllocator, debug, diagnostics } = context;
         
         // Bind
         const symbolTable = new SymbolTable(idAllocator);

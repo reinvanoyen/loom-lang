@@ -1,6 +1,6 @@
 import Loom from './Loom';
 import Lexer from './compiler/Lexer';
 import EventBus from './core/bus/EventBus';
-import DiagReporter from './compiler/DiagReporter';
+import Diagnostics from './compiler/Diagnostics';
 
-export { Loom, Lexer, EventBus, DiagReporter };
+export { Loom, Lexer, EventBus, Diagnostics };

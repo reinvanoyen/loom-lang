@@ -1,7 +1,4 @@
 namespace app;
 
-import 'types.loom';
 import 'ui/Button.loom';
 import 'ui/Card.loom';
-
-type ExtraSize = Size | 'huge';

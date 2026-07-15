@@ -1,7 +1,7 @@
 import AST from './AST';
 import Source from '@/compiler/Source';
 import ImportStatement from '@/compiler/nodes/ImportStatement';
-import DiagReporter from '@/compiler/DiagReporter';
+import Diagnostics from '@/compiler/Diagnostics';
 
 /**
  * Purpose: Represents one compiled source file after parse — the unit of “a .loom file on disk.”
@@ -29,9 +29,9 @@ export default class Module {
     private readonly path: string;
     private readonly source: Source;
     private readonly ast: AST;
-    private readonly diagnostics: DiagReporter;
+    private readonly diagnostics: Diagnostics;
 
-    constructor(path: string, source: Source, ast: AST, diagnostics: DiagReporter) {
+    constructor(path: string, source: Source, ast: AST, diagnostics: Diagnostics) {
         this.path = path;
         this.source = source;
         this.ast = ast;
@@ -50,7 +50,7 @@ export default class Module {
         return this.ast;
     }
 
-    public getDiagnosticsReporter(): DiagReporter {
+    public getDiagnosticsReporter(): Diagnostics {
         return this.diagnostics;
     }
 

@@ -1,7 +1,7 @@
 import { Token, TokenType } from './types/tokenization';
 import AST from './AST';
 import { Nullable } from './types/nullable';
-import DiagReporter, { MessageCode } from './DiagReporter';
+import Diagnostics, { MessageCode } from './Diagnostics';
 import EventBus from '../core/bus/EventBus';
 import { TEventMap } from './types/bus';
 import TokenStream, { SyncToken } from './TokenStream';
@@ -18,7 +18,6 @@ import IdentifierType from '@/compiler/nodes/IdentifierType';
 import StringType from '@/compiler/nodes/StringType';
 import Node from '@/compiler/Node';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
-import Span from '@/core/Span';
 
 enum RecoveryContext {
     TOP_LEVEL,
@@ -78,7 +77,7 @@ export default class Parser {
     /**
      * @private
      */
-    private reporter: DiagReporter;
+    private reporter: Diagnostics;
 
     /**
      * @private
@@ -91,7 +90,7 @@ export default class Parser {
      * @param events
      * @param reporter
      */
-    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: DiagReporter) {
+    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: Diagnostics) {
         this.tokenStream = tokenStream;
         this.builder = builder;
         this.events = events;
@@ -838,8 +837,12 @@ export default class Parser {
      * @private
      */
     private reportError(code: MessageCode, message: string, at?: Nullable<Token>) {
+
         const token = at ?? this.peek();
-        if (!token) return;
+
+        if (!token) {
+            return;
+        }
 
         if (this.lastErrorIndex !== null && this.lastErrorIndex === token.span.getStart()) {
             return;
@@ -848,7 +851,7 @@ export default class Parser {
         this.reporter.error({
             message,
             code,
-            span: new Span('filename', token.span.getStart(), token.span.getEnd()),
+            span: token.span,
         });
 
         this.lastErrorIndex = token.span.getStart();
