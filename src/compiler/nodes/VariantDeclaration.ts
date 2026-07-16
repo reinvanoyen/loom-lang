@@ -1,11 +1,11 @@
-import Node from '../Node';
-import TypeChecker from '../TypeChecker';
-import TypeTable from '../TypeTable';
+import Node from '../parser/Node';
+import TypeChecker from '../type-safety/TypeChecker';
+import TypeTable from '../type-safety/TypeTable';
 
 export default class VariantDeclaration extends Node {
 
     getName(): string {
-        return 'VAR_DECL';
+        return 'VARIANT_DECL';
     }
 
     check(typeChecker: TypeChecker, typeTable: TypeTable) {

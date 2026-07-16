@@ -1,6 +1,6 @@
-import Node from '../Node';
+import Node from '../parser/Node';
 import Type from './Type';
-import TypeResolver from '../TypeResolver';
+import TypeResolver from '../type-safety/TypeResolver';
 
 export default class TypeDeclaration extends Node {
 

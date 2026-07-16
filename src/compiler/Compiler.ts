@@ -1,26 +1,32 @@
 import chalk from 'chalk';
-import AST from './AST';
-import SymbolTable from './SymbolTable';
-import Binder from './Binder';
-import TypeTable from './TypeTable';
-import TypeResolver from './TypeResolver';
-import TypeChecker from './TypeChecker';
+import AST from './parser/AST';
+import SymbolTable from './binder/SymbolTable';
+import Binder from './binder/Binder';
+import TypeTable from './type-safety/TypeTable';
+import TypeResolver from './type-safety/TypeResolver';
+import TypeChecker from './type-safety/TypeChecker';
 import EmissionModelBuilder from '@/compiler/emitter/EmissionModelBuilder';
 import CSSEmitter from '@/compiler/emitter/CSSEmitter';
-import CompilationContext from '@/compiler/CompilationContext';
-import ModuleLoader from '@/compiler/ModuleLoader';
-import ModuleGraphLoader from '@/compiler/ModuleGraphLoader';
-import ProgramBuilder from '@/compiler/ProgramBuilder';
+import CompilationContext, { CompilationFlags } from '@/compiler/CompilationContext';
+import ModuleLoader from '@/compiler/module/ModuleLoader';
+import ModuleGraphLoader from '@/compiler/module/ModuleGraphLoader';
+import ProgramBuilder from '@/compiler/module/ProgramBuilder';
+import Diagnostics from '@/compiler/Diagnostics';
+
+type AnalyzeResult = {
+    css: string;
+    diagnostics: Diagnostics;
+    // later: symbolTable, boundAst, etc.
+};
 
 export default class Compiler {
-
     /**
      * @param entryPath
-     * @param opts
+     * @param flags
      */
-    public compileFile(entryPath: string, opts?: { debug?: boolean }): string {
+    public compileFile(entryPath: string, flags: CompilationFlags): string {
 
-        const context = this.createContext(opts?.debug ?? false);
+        const context = this.createContext(flags);
         const loader = new ModuleLoader(context);
         const graphLoader = new ModuleGraphLoader(loader, context);
         const compilation = graphLoader.loadGraph(entryPath);
@@ -29,13 +35,34 @@ export default class Compiler {
     }
 
     /**
-     * @param debug
+     * @param sourceText
+     * @param filename
+     * @param flags
+     */
+    public analyzeFromSource(sourceText: string, filename: string, flags: CompilationFlags): AnalyzeResult {
+
+        const context = this.createContext(flags);
+        const loader = new ModuleLoader(context);
+        const graphLoader = new ModuleGraphLoader(loader, context);
+        const compilation = graphLoader.loadGraphFromSource(filename, sourceText);
+        const program = new ProgramBuilder().build(compilation);
+
+        const css = this.compileAst(program, context);
+
+        return {
+            css,
+            diagnostics: context.diagnostics
+        };
+    }
+
+    /**
+     * @param flags
      * @private
      */
-    private createContext(debug = false): CompilationContext {
-        const context = new CompilationContext({ debug });
+    private createContext(flags: CompilationFlags): CompilationContext {
+        const context = new CompilationContext(flags);
 
-        if (debug) {
+        if (flags.verbose) {
             context.eventBus.on('startTokenization', (e) => {
                 console.log(e.code);
             });
@@ -51,15 +78,18 @@ export default class Compiler {
      */
     private compileAst(ast: AST, context: CompilationContext): string {
 
-        const { eventBus, idAllocator, debug, diagnostics } = context;
+        const { eventBus, idAllocator, flags, diagnostics } = context;
         
         // Bind
         const symbolTable = new SymbolTable(idAllocator);
-        new Binder(eventBus, diagnostics, symbolTable).bind(ast);
+        new Binder(symbolTable, context).bind(ast);
 
-        if (debug) {
+        if (flags.printSymbolTable) {
             console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));
             symbolTable.print();
+        }
+
+        if (flags.printBoundAst) {
             console.log(chalk.bgGreenBright(' === BOUND AST === '));
             ast.print();
         }
@@ -68,7 +98,7 @@ export default class Compiler {
         const typeTable = new TypeTable();
         new TypeResolver(eventBus, diagnostics, typeTable).resolve(ast);
 
-        if (debug) {
+        if (flags.printTypeTable) {
             console.log(chalk.bgGreenBright(' === TYPE TABLE === '));
             typeTable.print();
         }
@@ -76,26 +106,27 @@ export default class Compiler {
         // Check types
         new TypeChecker(eventBus, diagnostics).check(ast, typeTable);
 
-        if (debug) {
+        if (flags.printDiagnostics) {
             console.log(chalk.bgGreenBright(' === DIAGNOSTICS === '));
             diagnostics.print();
         }
 
         if (diagnostics.hasErrors()) {
-            if (debug) {
+            if (flags.verbose) {
                 console.error('Not compiling, errors found...');
             }
             return '';
         }
 
-        // Emit
+        // Build the emission model
         const model = new EmissionModelBuilder().build(ast);
 
-        if (debug) {
+        if (flags.printEmissionModel) {
             console.log(chalk.bgGreenBright(' === EMISSION MODEL === '));
-            console.log(model);
+            model.print();
         }
 
+        // Emit CSS
         return new CSSEmitter().emit(model);
     }
 }

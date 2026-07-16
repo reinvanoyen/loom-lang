@@ -1,6 +1,7 @@
 import Source from '@/compiler/Source';
 import chalk from 'chalk';
 import Span from '@/core/Span';
+import { Nullable } from '@/compiler/types/nullable';
 
 export enum MessageCode {
 
@@ -24,6 +25,8 @@ export enum MessageCode {
 
     E_IMPORT_NOT_FOUND,
     E_IMPORT_CYCLE,
+
+    E_EXPECTED_CLASS,
 }
 
 type SourceSnippet = {
@@ -46,6 +49,18 @@ export default class Diagnostics {
     private sources = new Map<string, Source>();
 
     /**
+     * @private
+     */
+    private messages: DiagnosticMessage[] = [];
+
+    /**
+     * Gets the current diagnostic messages
+     */
+    public getMessages(): DiagnosticMessage[] {
+        return this.messages;
+    }
+
+    /**
      * @param source
      */
     public registerSource(source: Source) {
@@ -53,9 +68,11 @@ export default class Diagnostics {
     }
 
     /**
-     * @private
+     * @param filename
      */
-    private messages: DiagnosticMessage[] = [];
+    public getSource(filename: string): Nullable<Source> {
+        return this.sources.get(filename) || null;
+    }
 
     /**
      * @param message

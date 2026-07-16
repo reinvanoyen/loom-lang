@@ -1,5 +1,5 @@
-import { Namespace } from './types/namespace';
-import { Nullable } from './types/nullable';
+import { Namespace } from '../types/namespace';
+import { Nullable } from '../types/nullable';
 
 export type SymbolType = 'namespace' | 'class' | 'type' | 'variant' | 'slot';
 
@@ -44,6 +44,20 @@ export default class Symbol {
      */
     public getId(): Nullable<number> {
         return this.id;
+    }
+
+    /**
+     *
+     */
+    public getType(): SymbolType {
+        return this.type;
+    }
+
+    /**
+     * @param type
+     */
+    public isType(type: string): boolean {
+        return this.type === type;
     }
 
     /**

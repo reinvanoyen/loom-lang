@@ -1,4 +1,4 @@
-import AST from '@/compiler/AST';
+import AST from '@/compiler/parser/AST';
 import Compilation from '@/compiler/Compilation';
 import ImportStatement from '@/compiler/nodes/ImportStatement';
 

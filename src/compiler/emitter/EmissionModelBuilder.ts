@@ -1,11 +1,11 @@
-import AST from '@/compiler/AST';
+import AST from '@/compiler/parser/AST';
 import Namespace from '@/compiler/nodes/Namespace';
 import EmissionModel, { ClassEmission } from '@/compiler/emitter/EmissionModel';
 import Class from '@/compiler/nodes/Class';
 import StyleBlock from '@/compiler/nodes/StyleBlock';
 import SlotDeclaration from '@/compiler/nodes/SlotDeclaration';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
-import Node from '@/compiler/Node';
+import Node from '@/compiler/parser/Node';
 import { namespacedKey } from '@/compiler/helpers';
 
 /**
@@ -64,14 +64,16 @@ export default class EmissionModelBuilder {
      * @private
      */
     private collectClass(classNode: Class, namespace: string) {
-        const parent = classNode.getStringAttribute('parent');
-        const parentNamespace = classNode.getStringAttribute('parentNamespace');
         const className = classNode.getValue()!;
         const nodes = classNode.getChildren();
 
         const ownClassStyles: string[] = this.extractStyleBlocks(nodes);
         const ownSlots: string[] = [];
         const ownSlotStyles = new Map<string, string[]>();
+
+        const parentSymbol = classNode.getSymbol('parent');
+        const parentName = classNode.getStringAttribute('parent');
+        const parentNamespace = parentSymbol?.getNamespace() ?? namespace;
 
         nodes.forEach(node => {
             if (node instanceof SlotDeclaration) {
@@ -85,18 +87,22 @@ export default class EmissionModelBuilder {
 
                 const isStyleOnly =
                     contents !== null &&
-                    (parent !== null && parent !== undefined) &&
-                    this.classHasSlot(namespacedKey(parent, parentNamespace ?? namespace), slotName);
+                    parentName !== null &&
+                    this.classHasSlot(namespacedKey(parentName, parentNamespace), slotName);
 
-                if (!isStyleOnly && !ownSlots.includes(slotName)) {
+                if (! isStyleOnly && !ownSlots.includes(slotName)) {
                     ownSlots.push(slotName);
                 }
             }
         });
 
         const classEmission = this.model.getOrCreateClassEmission(namespace, className);
-        classEmission.parent = parent || undefined;
-        classEmission.parentNamespace = parentNamespace || undefined;
+
+        if (parentSymbol) {
+            classEmission.parent = parentName || undefined;
+            classEmission.parentNamespace = parentNamespace || undefined;
+        }
+
         classEmission.namespace = namespace;
         classEmission.ownClassStyles = ownClassStyles;
         classEmission.ownSlots = ownSlots;
@@ -262,9 +268,7 @@ export default class EmissionModelBuilder {
      * @private
      */
     private applyAugmentations(ast: AST) {
-        const nodes = ast.getChildren();
-
-        nodes.forEach(node => {
+        ast.getChildren().forEach(node => {
             if (node instanceof ClassAugmentation) {
                 this.applyClassAugmentation(node);
             }

@@ -1,10 +1,10 @@
-import Node from '../Node';
-import TypeResolver from '../TypeResolver';
+import Node from '../parser/Node';
+import TypeResolver from '../type-safety/TypeResolver';
 
 export default class Class extends Node {
 
     getName(): string {
-        return 'CLS';
+        return 'CLASS';
     }
 
     resolve(typeResolver: TypeResolver) {

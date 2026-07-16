@@ -1,15 +1,15 @@
-import AST from './AST';
-import Diagnostics from './Diagnostics';
+import AST from '../parser/AST';
+import Diagnostics from '../Diagnostics';
 import TypeTable from './TypeTable';
-import { ResolvedType } from './types/analyzer';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
+import { ResolvedType } from '../types/analyzer';
+import EventBus from '../../core/bus/EventBus';
+import { EventMap } from '../types/bus';
 
 export default class TypeChecker {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>;
+    private events: EventBus<EventMap>;
 
     /**
      * @private
@@ -20,7 +20,7 @@ export default class TypeChecker {
      * @param events
      * @param reporter
      */
-    constructor(events: EventBus<TEventMap>, reporter: Diagnostics) {
+    constructor(events: EventBus<EventMap>, reporter: Diagnostics) {
         this.events = events;
         this.reporter = reporter;
     }

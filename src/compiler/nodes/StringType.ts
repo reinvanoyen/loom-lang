@@ -1,4 +1,4 @@
-import Node from '../Node';
+import Node from '../parser/Node';
 
 export default class StringType extends Node {
 

@@ -57,4 +57,8 @@ export default class EmissionModel {
     public getClasses(): Map<string, ClassEmission> {
         return this.classes;
     }
+
+    public print() {
+        console.log(this.classes);
+    }
 }

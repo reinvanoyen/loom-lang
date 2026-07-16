@@ -1,8 +1,8 @@
-import Node from '../Node';
+import Node from '../parser/Node';
 
 export default class SlotDeclaration extends Node {
 
     getName(): string {
-        return 'SLT_DECL';
+        return 'SLOT_DECL';
     }
 }

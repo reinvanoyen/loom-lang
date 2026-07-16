@@ -1,15 +1,14 @@
-import Node from './Node';
+import Node from '../parser/Node';
 import Symbol from './Symbol';
 import SymbolTable from './SymbolTable';
-import { Namespace } from './types/namespace';
-import Diagnostics, { MessageCode } from './Diagnostics';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
+import { Namespace } from '../types/namespace';
+import { MessageCode } from '../Diagnostics';
 import Class from '@/compiler/nodes/Class';
 import { default as NamespaceNode } from '@/compiler/nodes/Namespace';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
 import IdentifierType from '@/compiler/nodes/IdentifierType';
 import TypeDeclaration from '@/compiler/nodes/TypeDeclaration';
+import CompilationContext from '@/compiler/CompilationContext';
 
 export default class Binder {
     /**
@@ -25,22 +24,15 @@ export default class Binder {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>
+    private context: CompilationContext;
 
     /**
-     * @private
-     */
-    private reporter: Diagnostics;
-
-    /**
-     * @param events
-     * @param reporter
      * @param symbolTable
+     * @param context
      */
-    constructor(events: EventBus<TEventMap>, reporter: Diagnostics, symbolTable: SymbolTable) {
-        this.events = events;
-        this.reporter = reporter;
+    constructor(symbolTable: SymbolTable, context: CompilationContext) {
         this.symbolTable = symbolTable;
+        this.context = context;
     }
 
     /**
@@ -48,6 +40,12 @@ export default class Binder {
      */
     public bind(ast: Node) {
         this.bindNode(ast);
+
+        /*
+        * todo - maybe split binding in two steps?
+        * this.bindDeclarations(ast);  // register classes + types
+        * this.bindReferences(ast);    // extends, augments, identifier types
+        * */
     }
 
     /**
@@ -114,6 +112,8 @@ export default class Binder {
      * @private
      */
     private bindClass(node: Class) {
+
+        // Bind own symbol
         const id = node.getId();
         const className = node.getValue();
 
@@ -122,6 +122,31 @@ export default class Binder {
             node.setSymbol(symbol);
             this.add(className, symbol);
         }
+
+        // Bind parent symbol to class
+        const parentClassName = node.getStringAttribute('parent');
+        const parentClassNamespace = node.getStringAttribute('parentNamespace') ?? this.currentNamespace;
+
+        if (! parentClassName) {
+            return;
+        }
+
+        const parentSymbol = this.getInNamespace(parentClassNamespace, parentClassName);
+
+        if (! parentSymbol) {
+            return;
+        }
+
+        if (! parentSymbol.isType('class')) {
+            this.context.diagnostics.error({
+                code: MessageCode.E_EXPECTED_CLASS,
+                message: `Expected class, got ${parentSymbol.getType()} (${parentClassName} in namespace ${parentClassNamespace})`,
+            });
+            return;
+        }
+
+        // Register the symbol as parent on the node
+        node.setSymbol(parentSymbol, 'parent');
     }
 
     /**
@@ -194,13 +219,13 @@ export default class Binder {
      */
     private add(name: string, symbol: Symbol) {
         if (this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-            this.reporter.error({
+            this.context.diagnostics.error({
                 code: MessageCode.E_DUPLICATE_SYMBOL,
                 message: `Binding error: ${name} already exists`
             });
             return;
         }
-        this.events.emit('symbolBind', { name, symbol });
+        this.context.eventBus.emit('symbolBind', { name, symbol });
         this.symbolTable.registerSymbol(this.currentNamespace, name, symbol);
     }
 
@@ -209,7 +234,7 @@ export default class Binder {
      */
     private get(name: string) {
         if (!this.symbolTable.hasSymbol(this.currentNamespace, name)) {
-            this.reporter.error({
+            this.context.diagnostics.error({
                 code: MessageCode.E_UNDEFINED_SYMBOL,
                 message: `Binding error: couldn't get symbol with name ${name}`
             });
@@ -224,7 +249,7 @@ export default class Binder {
      */
     private getInNamespace(ns: Namespace, name: string): Symbol | null {
         if (!this.symbolTable.hasSymbol(ns, name)) {
-            this.reporter.error({
+            this.context.diagnostics.error({
                 code: MessageCode.E_UNDEFINED_SYMBOL,
                 message: `Binding error: couldn't find symbol '${ns}.${name}'`,
             });
@@ -234,20 +259,19 @@ export default class Binder {
         return this.symbolTable.getSymbol(ns, name)!;
     }
 
-
     /**
      * @param name
      * @param symbol
      */
     private addType(name: string, symbol: Symbol) {
         if (this.symbolTable.hasType(name)) {
-            this.reporter.error({
+            this.context.diagnostics.error({
                 code: MessageCode.E_DUPLICATE_SYMBOL,
                 message: `Binding error: type '${name}' already exists`
             });
             return;
         }
-        this.events.emit('symbolBind', { name, symbol });
+        this.context.eventBus.emit('symbolBind', { name, symbol });
         this.symbolTable.registerType(name, symbol);
     }
 

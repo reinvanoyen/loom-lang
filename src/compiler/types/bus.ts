@@ -1,10 +1,10 @@
-import Symbol from '../Symbol';
+import Symbol from '../binder/Symbol';
 import { ResolvedType } from './analyzer';
-import AST from '../AST';
-import TypeTable from '../TypeTable';
-import TokenStream from '../TokenStream';
+import AST from '../parser/AST';
+import TypeTable from '../type-safety/TypeTable';
+import TokenStream from '../lexer/TokenStream';
 
-export interface TEventMap {
+export interface EventMap {
     startTokenization: { code: string }
     startParsing: { tokenStream: TokenStream }
     endParsing: { tokenStream: TokenStream }
@@ -14,9 +14,9 @@ export interface TEventMap {
     typeDefine: { symbol: Symbol, type: ResolvedType }
 }
 
-export type TEventKey<E> = keyof E;
+export type EventKey<E> = keyof E;
 
-export type TEventListener<E, K extends TEventKey<E>> =
+export type EventListener<E, K extends EventKey<E>> =
     E[K] extends void
         ? () => void
         : (event: E[K]) => void;

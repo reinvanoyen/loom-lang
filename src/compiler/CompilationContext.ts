@@ -1,16 +1,25 @@
 import EventBus from '@/core/bus/EventBus';
-import { TEventMap } from '@/compiler/types/bus';
+import { EventMap } from '@/compiler/types/bus';
 import IdAllocator from '@/core/allocators/IdAllocator';
 import Diagnostics from '@/compiler/Diagnostics';
 
+export type CompilationFlags = {
+    verbose: boolean,
+    printBoundAst: boolean,
+    printSymbolTable: boolean,
+    printTypeTable: boolean,
+    printDiagnostics: boolean,
+    printEmissionModel: boolean,
+};
+
 export default class CompilationContext {
 
-    readonly eventBus = new EventBus<TEventMap>();
-    readonly idAllocator = new IdAllocator();
-    readonly diagnostics = new Diagnostics();
-    readonly debug: boolean;
+    public readonly eventBus = new EventBus<EventMap>();
+    public readonly idAllocator = new IdAllocator();
+    public readonly diagnostics = new Diagnostics();
+    public readonly flags: CompilationFlags;
 
-    constructor(opts?: { debug?: boolean }) {
-        this.debug = opts?.debug ?? false;
+    constructor(flags: CompilationFlags) {
+        this.flags = flags;
     }
 }

@@ -1,5 +1,5 @@
-import Node from '../Node';
-import TypeResolver from '../TypeResolver';
+import Node from '../parser/Node';
+import TypeResolver from '../type-safety/TypeResolver';
 
 export default class Namespace extends Node {
 

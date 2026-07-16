@@ -21,3 +21,14 @@
   padding: .5rem 1rem;
   background-color: blue;
 }
+.app-SuperCard {
+  padding: 1rem;
+  background-color: white;
+  border: 1px solid black;
+  color: blue;
+}
+.app-SuperCard__image {
+  border: 2px solid red;
+  opacity: .2;
+}
+.app-SuperCard__body {}

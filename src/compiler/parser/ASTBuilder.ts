@@ -1,13 +1,8 @@
-import IdAllocator from '../core/allocators/IdAllocator';
-import AST from '@/compiler/AST';
-import Node from '@/compiler/Node';
+import AST from '@/compiler/parser/AST';
+import Node from '@/compiler/parser/Node';
+import CompilationContext from '@/compiler/CompilationContext';
 
 export default class ASTBuilder {
-    /**
-     * @private
-     */
-    private idAlloc: IdAllocator;
-
     /**
      * @private
      */
@@ -20,14 +15,18 @@ export default class ASTBuilder {
     private ast: AST;
 
     /**
-     * @param ast
-     * @param idAlloc
+     * @private
      */
-    constructor(ast: AST, idAlloc: IdAllocator) {
+    private context: CompilationContext;
+
+    /**
+     * @param ast
+     * @param context
+     */
+    constructor(ast: AST, context: CompilationContext) {
         this.scope = ast;
         this.ast = ast;
-
-        this.idAlloc = idAlloc;
+        this.context = context;
     }
 
     /**
@@ -101,7 +100,7 @@ export default class ASTBuilder {
      * @param node
      */
     public insert(node: Node) {
-        node.setId(this.idAlloc.allocate());
+        node.setId(this.context.idAllocator.allocate());
         node.setParent(this.scope);
         this.scope.addChild(node);
     }

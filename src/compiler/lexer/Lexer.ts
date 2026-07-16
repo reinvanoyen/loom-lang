@@ -1,12 +1,11 @@
 import grammar from './grammar';
-import { LexMode, Position, TokenType } from './types/tokenization';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
-import Diagnostics, { MessageCode } from './Diagnostics';
+import { LexMode, Position, TokenType } from '../types/tokenization';
+import { MessageCode } from '../Diagnostics';
 import TokenStream from './TokenStream';
 import Source from '@/compiler/Source';
 import { Nullable } from '@/compiler/types/nullable';
 import Span from '@/core/Span';
+import CompilationContext from '@/compiler/CompilationContext';
 
 /**
  * Notes: span includes delimiters, token value excludes them
@@ -63,20 +62,13 @@ export default class Lexer {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>;
+    private context: CompilationContext;
 
     /**
-     * @private
+     * @param context
      */
-    private reporter: Diagnostics;
-
-    /**
-     * @param events
-     * @param reporter
-     */
-    constructor(events: EventBus<TEventMap>, reporter: Diagnostics) {
-        this.events = events;
-        this.reporter = reporter;
+    constructor(context: CompilationContext) {
+        this.context = context;
         this.tokens = new TokenStream();
     }
 
@@ -103,7 +95,7 @@ export default class Lexer {
         this.source = source;
         this.end = this.source.getLength();
 
-        this.events.emit('startTokenization', { code: this.source.getText() });
+        this.context.eventBus.emit('startTokenization', { code: this.source.getText() });
 
         while (this.position < this.end) {
 
@@ -151,7 +143,7 @@ export default class Lexer {
 
     private closeMode(mode: LexMode, tokenToEmit: TokenType, warning: string) {
         if (this.mode === mode) {
-            this.reporter.error({
+            this.context.diagnostics.error({
                 code: MessageCode.E_TOKEN_NOT_CLOSED,
                 message: warning,
                 span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),

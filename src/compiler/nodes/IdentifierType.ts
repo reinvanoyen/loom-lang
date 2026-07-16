@@ -1,8 +1,8 @@
-import Node from '../Node';
+import Node from '../parser/Node';
 
 export default class IdentifierType extends Node {
 
     getName(): string {
-        return 'T_IDNT';
+        return 'T_IDENT';
     }
 }

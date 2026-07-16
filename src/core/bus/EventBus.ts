@@ -1,18 +1,18 @@
-import type { TEventKey, TEventListener, TEventMap } from '../../compiler/types/bus';
+import type { EventKey, EventListener, EventMap } from '../../compiler/types/bus';
 
-interface TListenerEntry<E, K extends TEventKey<E>> {
+interface TListenerEntry<E, K extends EventKey<E>> {
     id: number
-    listener: TEventListener<E, K>
+    listener: EventListener<E, K>
 }
 
 type TListenerMap<E> = {
-    [K in TEventKey<E>]?: TListenerEntry<E, K>[];
+    [K in EventKey<E>]?: TListenerEntry<E, K>[];
 };
 
 /**
  * Manages events: registry, event listeners, event removals
  */
-export default class EventBus<E extends TEventMap> {
+export default class EventBus<E extends EventMap> {
     /**
      * The current id
      * @private
@@ -23,7 +23,7 @@ export default class EventBus<E extends TEventMap> {
      *
      * @private
      */
-    private eventIdMap: Record<number, TEventKey<E>> = {};
+    private eventIdMap: Record<number, EventKey<E>> = {};
 
     /**
      * The registered event listeners
@@ -35,7 +35,7 @@ export default class EventBus<E extends TEventMap> {
      * @param eventKey
      * @param listener
      */
-    public on<K extends TEventKey<E>>(eventKey: K, listener: TEventListener<E, K>) {
+    public on<K extends EventKey<E>>(eventKey: K, listener: EventListener<E, K>) {
         // Increment the id
         const id = ++this.currentId;
 
@@ -82,7 +82,7 @@ export default class EventBus<E extends TEventMap> {
      * @param eventKey
      * @param args
      */
-    public emit<K extends TEventKey<E>>(eventKey: K, ...args: E[K] extends void ? [] : [E[K]]) {
+    public emit<K extends EventKey<E>>(eventKey: K, ...args: E[K] extends void ? [] : [E[K]]) {
         const listeners = this.listeners[eventKey];
         if (!listeners)
             return;

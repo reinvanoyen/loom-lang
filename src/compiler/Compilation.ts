@@ -1,4 +1,4 @@
-import Module from '@/compiler/Module';
+import Module from '@/compiler/module/Module';
 import path from 'node:path';
 
 /**

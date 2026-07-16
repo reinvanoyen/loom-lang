@@ -2,3 +2,11 @@ namespace app;
 
 import 'ui/Button.loom';
 import 'ui/Card.loom';
+
+class SuperCard extends ui.Card {
+    {% color: blue; %}
+
+    slot image {%
+        opacity: .2;
+    %}
+}

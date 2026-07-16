@@ -1,5 +1,5 @@
 import EmissionModel from '@/compiler/emitter/EmissionModel';
-import OutputBuffer from '@/compiler/OutputBuffer';
+import OutputBuffer from '@/compiler/emitter/OutputBuffer';
 import { createClassSelector, createSlotSelector } from '@/compiler/emitter/selector-creators';
 
 export default class CSSEmitter {

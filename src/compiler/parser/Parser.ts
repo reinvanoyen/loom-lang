@@ -1,10 +1,8 @@
-import { Token, TokenType } from './types/tokenization';
+import { Token, TokenType } from '../types/tokenization';
 import AST from './AST';
-import { Nullable } from './types/nullable';
-import Diagnostics, { MessageCode } from './Diagnostics';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
-import TokenStream, { SyncToken } from './TokenStream';
+import { Nullable } from '../types/nullable';
+import { MessageCode } from '../Diagnostics';
+import TokenStream, { SyncToken } from '../lexer/TokenStream';
 import ASTBuilder from './ASTBuilder';
 import Namespace from '@/compiler/nodes/Namespace';
 import ImportStatement from '@/compiler/nodes/ImportStatement';
@@ -16,8 +14,9 @@ import StyleBlock from '@/compiler/nodes/StyleBlock';
 import Class from '@/compiler/nodes/Class';
 import IdentifierType from '@/compiler/nodes/IdentifierType';
 import StringType from '@/compiler/nodes/StringType';
-import Node from '@/compiler/Node';
+import Node from '@/compiler/parser/Node';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
+import CompilationContext from '@/compiler/CompilationContext';
 
 enum RecoveryContext {
     TOP_LEVEL,
@@ -72,17 +71,12 @@ export default class Parser {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>;
-
-    /**
-     * @private
-     */
-    private reporter: Diagnostics;
-
-    /**
-     * @private
-     */
     private lastErrorIndex: Nullable<number> = null;
+
+    /**
+     * @private
+     */
+    private context: CompilationContext;
 
     /**
      * @param tokenStream
@@ -90,20 +84,21 @@ export default class Parser {
      * @param events
      * @param reporter
      */
-    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: Diagnostics) {
+    constructor(tokenStream: TokenStream, builder: ASTBuilder, context: CompilationContext) {
         this.tokenStream = tokenStream;
         this.builder = builder;
-        this.events = events;
-        this.reporter = reporter;
+        this.context = context;
+        //this.events = events;
+        //this.reporter = reporter;
     }
 
     /**
      * Parse the TokenStream into an Abstract Syntax Tree (AST)
      */
     public parse(): AST {
-        this.events.emit('startParsing', { tokenStream: this.tokenStream });
+        this.context.eventBus.emit('startParsing', { tokenStream: this.tokenStream });
         this.parseAll();
-        this.events.emit('endParsing', { tokenStream: this.tokenStream });
+        this.context.eventBus.emit('endParsing', { tokenStream: this.tokenStream });
 
         return this.builder.getAst();
     }
@@ -848,7 +843,7 @@ export default class Parser {
             return;
         }
 
-        this.reporter.error({
+        this.context.diagnostics.error({
             message,
             code,
             span: token.span,
