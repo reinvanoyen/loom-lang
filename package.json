@@ -5,15 +5,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "demo": "npm run build && node src/playground/demo.js",
-    "example": "npm run build && npx loom src/playground/index.loom src/playground/index.css",
+    "dev": "tsup --watch",
     "build": "tsup",
     "test": "jest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "loom": "npm run build && node dist/cli/index.js",
+    "example": "npm run build && node dist/cli/index.js -o src/playground/index.css src/playground/index.loom"
   },
   "bin": {
-    "loom": "./bin/loom.js"
+    "loom": "./dist/cli/index.js",
+    "loom-lsp": "./dist/lang-server/index.js"
   },
   "repository": {
     "type": "git",
@@ -51,6 +53,8 @@
     "typescript-eslint": "^8.55.0"
   },
   "dependencies": {
-    "chalk": "^5.6.2"
+    "chalk": "^5.6.2",
+    "vscode-languageserver": "^10.1.0",
+    "vscode-languageserver-textdocument": "^1.0.12"
   }
 }

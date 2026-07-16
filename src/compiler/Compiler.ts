@@ -1,74 +1,132 @@
 import chalk from 'chalk';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
-import DiagReporter from './DiagReporter';
-import Lexer from './Lexer';
-import ASTBuilder from './ASTBuilder';
-import AST from './AST';
-import IdAllocator from '../core/allocators/IdAllocator';
-import Parser from './Parser';
-import SymbolTable from './SymbolTable';
-import Binder from './Binder';
-import TypeTable from './TypeTable';
-import TypeResolver from './TypeResolver';
-import TypeChecker from './TypeChecker';
+import AST from './parser/AST';
+import SymbolTable from './binder/SymbolTable';
+import Binder from './binder/Binder';
+import TypeTable from './type-safety/TypeTable';
+import TypeResolver from './type-safety/TypeResolver';
+import TypeChecker from './type-safety/TypeChecker';
+import EmissionModelBuilder from '@/compiler/emitter/EmissionModelBuilder';
+import CSSEmitter from '@/compiler/emitter/CSSEmitter';
+import CompilationContext, { CompilationFlags } from '@/compiler/CompilationContext';
+import ModuleLoader from '@/compiler/module/ModuleLoader';
+import ModuleGraphLoader from '@/compiler/module/ModuleGraphLoader';
+import ProgramBuilder from '@/compiler/module/ProgramBuilder';
+import Diagnostics from '@/compiler/Diagnostics';
+
+type AnalyzeResult = {
+    css: string;
+    diagnostics: Diagnostics;
+    // later: symbolTable, boundAst, etc.
+};
 
 export default class Compiler {
-    public compile(code: string) {
+    /**
+     * @param entryPath
+     * @param flags
+     */
+    public compileFile(entryPath: string, flags: CompilationFlags): string {
 
-        const eventBus = new EventBus<TEventMap>();
+        const context = this.createContext(flags);
+        const loader = new ModuleLoader(context);
+        const graphLoader = new ModuleGraphLoader(loader, context);
+        const compilation = graphLoader.loadGraph(entryPath);
+        const program = new ProgramBuilder().build(compilation);
+        return this.compileAst(program, context);
+    }
 
-        eventBus.on('startTokenization', (e) => {
-            console.log(e.code);
-        });
+    /**
+     * @param sourceText
+     * @param filename
+     * @param flags
+     */
+    public analyzeFromSource(sourceText: string, filename: string, flags: CompilationFlags): AnalyzeResult {
 
-        // Make a diagnostics reporter we can report messages to during this whole process
-        const diagnostics = new DiagReporter(code);
+        const context = this.createContext(flags);
+        const loader = new ModuleLoader(context);
+        const graphLoader = new ModuleGraphLoader(loader, context);
+        const compilation = graphLoader.loadGraphFromSource(filename, sourceText);
+        const program = new ProgramBuilder().build(compilation);
 
-        // Tokenize the code
-        const tokenStream = (new Lexer(eventBus, diagnostics)).tokenize(code);
-        console.log(chalk.bgGreenBright(' === TOKENS === '));
-        console.log(chalk.bgCyan('TOKEN COUNT', tokenStream.getLength()));
-        tokenStream.print();
+        const css = this.compileAst(program, context);
 
-        // Parse the tokens into an AST
-        const builder = new ASTBuilder(new AST(), new IdAllocator());
-        const ast = (new Parser(tokenStream, builder, eventBus, diagnostics).parse());
-        console.log(chalk.bgGreenBright(' === AST === '));
-        ast.print();
+        return {
+            css,
+            diagnostics: context.diagnostics
+        };
+    }
 
-        // Bind Symbols to AST
-        const symbolTable = new SymbolTable(new IdAllocator());
-        (new Binder(eventBus, diagnostics, symbolTable)).bind(ast);
+    /**
+     * @param flags
+     * @private
+     */
+    private createContext(flags: CompilationFlags): CompilationContext {
+        const context = new CompilationContext(flags);
 
-        console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));
-        symbolTable.print();
+        if (flags.verbose) {
+            context.eventBus.on('startTokenization', (e) => {
+                console.log(e.code);
+            });
+        }
 
-        console.log(chalk.bgGreenBright(' === BOUND AST === '));
-        ast.print();
+        return context;
+    }
+
+    /**
+     * @param ast
+     * @param context
+     * @private
+     */
+    private compileAst(ast: AST, context: CompilationContext): string {
+
+        const { eventBus, idAllocator, flags, diagnostics } = context;
+        
+        // Bind
+        const symbolTable = new SymbolTable(idAllocator);
+        new Binder(symbolTable, context).bind(ast);
+
+        if (flags.printSymbolTable) {
+            console.log(chalk.bgGreenBright(' === SYMBOL TABLE === '));
+            symbolTable.print();
+        }
+
+        if (flags.printBoundAst) {
+            console.log(chalk.bgGreenBright(' === BOUND AST === '));
+            ast.print();
+        }
 
         // Resolve types
         const typeTable = new TypeTable();
-        const resolver = new TypeResolver(eventBus, diagnostics, typeTable);
-        resolver.resolve(ast);
+        new TypeResolver(eventBus, diagnostics, typeTable).resolve(ast);
 
-        console.log(chalk.bgGreenBright(' === TYPE TABLE === '));
-        typeTable.print();
+        if (flags.printTypeTable) {
+            console.log(chalk.bgGreenBright(' === TYPE TABLE === '));
+            typeTable.print();
+        }
 
-        // Check the types
-        // todo - this needs tons of work
-        (new TypeChecker(eventBus, diagnostics)).check(ast, typeTable);
+        // Check types
+        new TypeChecker(eventBus, diagnostics).check(ast, typeTable);
 
-        console.log(chalk.bgGreenBright(' === DIAGNOSTICS === '));
-        diagnostics.print();
+        if (flags.printDiagnostics) {
+            console.log(chalk.bgGreenBright(' === DIAGNOSTICS === '));
+            diagnostics.print();
+        }
 
         if (diagnostics.hasErrors()) {
-            console.error('Not compiling, errors found...')
+            if (flags.verbose) {
+                console.error('Not compiling, errors found...');
+            }
             return '';
         }
 
-        // Finally we emit
-        // todo
-        return 'CSS OUTPUT...';
+        // Build the emission model
+        const model = new EmissionModelBuilder().build(ast);
+
+        if (flags.printEmissionModel) {
+            console.log(chalk.bgGreenBright(' === EMISSION MODEL === '));
+            model.print();
+        }
+
+        // Emit CSS
+        return new CSSEmitter().emit(model);
     }
 }

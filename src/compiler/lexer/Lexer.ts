@@ -1,9 +1,11 @@
 import grammar from './grammar';
-import { LexMode, Position, TokenType } from './types/tokenization';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
-import DiagReporter, { MessageCode } from './DiagReporter';
+import { LexMode, Position, TokenType } from '../types/tokenization';
+import { MessageCode } from '../Diagnostics';
 import TokenStream from './TokenStream';
+import Source from '@/compiler/Source';
+import { Nullable } from '@/compiler/types/nullable';
+import Span from '@/core/Span';
+import CompilationContext from '@/compiler/CompilationContext';
 
 /**
  * Notes: span includes delimiters, token value excludes them
@@ -13,7 +15,7 @@ export default class Lexer {
      * The source code to tokenize
      * @private
      */
-    private source: string = '';
+    private source: Nullable<Source> = null;
 
     /**
      * The current mode of lexing
@@ -25,13 +27,13 @@ export default class Lexer {
      * The current position
      * @private
      */
-    private position: Position = { index: 0, line: 1, column: 1 };
+    private position: Position = 0;
 
     /**
      * The position at which we started lexing in a new mode
      * @private
      */
-    private modeStartPosition: Position =  { index: 0, line: 1, column: 1 };
+    private modeStartPosition: Position = 0;
 
     /**
      * The index of the last character, also the amount of characters
@@ -60,20 +62,13 @@ export default class Lexer {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>;
+    private context: CompilationContext;
 
     /**
-     * @private
+     * @param context
      */
-    private reporter: DiagReporter;
-
-    /**
-     * @param events
-     * @param reporter
-     */
-    constructor(events: EventBus<TEventMap>, reporter: DiagReporter) {
-        this.events = events;
-        this.reporter = reporter;
+    constructor(context: CompilationContext) {
+        this.context = context;
         this.tokens = new TokenStream();
     }
 
@@ -82,8 +77,8 @@ export default class Lexer {
      */
     private reset() {
         this.mode = LexMode.ALL;
-        this.position = { index: 0, line: 1, column: 1 };
-        this.modeStartPosition = { index: 0, line: 1, column: 1 };
+        this.position = 0;
+        this.modeStartPosition = 0;
         this.tokens = new TokenStream();
         this.value = '';
         this.delimiter = '';
@@ -91,23 +86,23 @@ export default class Lexer {
 
     /**
      * Transforms code into a TokenStream
-     * @param text
+     * @param source
      */
-    public tokenize(text: string): TokenStream {
+    public tokenize(source: Source): TokenStream {
 
         this.reset();
 
-        this.source = text;
-        this.end = this.source.length;
+        this.source = source;
+        this.end = this.source.getLength();
 
-        this.events.emit('startTokenization', { code: text });
+        this.context.eventBus.emit('startTokenization', { code: this.source.getText() });
 
-        while (this.position.index < this.end) {
+        while (this.position < this.end) {
 
             // Determine the mode
             if (this.mode === LexMode.ALL) {
                 this.mode = this.determineMode();
-                this.modeStartPosition = { ...this.position };
+                this.modeStartPosition = this.position;
             }
 
             switch (this.mode) {
@@ -148,17 +143,16 @@ export default class Lexer {
 
     private closeMode(mode: LexMode, tokenToEmit: TokenType, warning: string) {
         if (this.mode === mode) {
-            this.reporter.error({
+            this.context.diagnostics.error({
                 code: MessageCode.E_TOKEN_NOT_CLOSED,
                 message: warning,
-                span: { start: { ...this.modeStartPosition }, end: { ...this.position } }
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.tokens.add({
                 type: tokenToEmit,
                 value: this.value,
-                startPosition: { ...this.modeStartPosition },
-                endPosition: { ...this.position },
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.value = '';
@@ -177,8 +171,11 @@ export default class Lexer {
      * @param offset
      * @private
      */
-    private peek(offset = 0) {
-        return this.source[this.position.index + offset] ?? '';
+    private peek(offset = 0): string {
+        if (!this.source) {
+            return '';
+        }
+        return this.source.getCharAt(this.position + offset);
     }
 
     /**
@@ -188,21 +185,16 @@ export default class Lexer {
         const c = this.peek();
 
         if (c === '\r' && this.peek(1) === '\n') {
-            this.position.index += 2;
-            this.position.line++;
-            this.position.column = 1;
+            this.position += 2;
             return;
         }
 
         if (c === '\n' || c === '\r') {
-            this.position.index += 1;
-            this.position.line++;
-            this.position.column = 1;
+            this.position += 1;
             return;
         }
 
-        this.position.index += 1;
-        this.position.column += 1;
+        this.position += 1;
     }
 
     /**
@@ -267,8 +259,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.STRING,
                 value: this.value,
-                startPosition: { ...this.modeStartPosition },
-                endPosition: { ...this.position }
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
             this.mode = LexMode.ALL;
             this.delimiter = '';
@@ -314,8 +305,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.RAW_BLOCK,
                 value: this.value,
-                startPosition: { ...this.modeStartPosition },
-                endPosition: { ...this.position },
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.mode = LexMode.ALL;
@@ -339,8 +329,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.IDENT,
                 value: this.value,
-                startPosition: { ...this.modeStartPosition },
-                endPosition: { ...this.position },
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
             this.mode = LexMode.ALL;
         }
@@ -358,8 +347,7 @@ export default class Lexer {
             this.tokens.add({
                 type: TokenType.NUMBER,
                 value: this.value,
-                startPosition: { ...this.modeStartPosition },
-                endPosition: { ...this.position },
+                span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
             });
 
             this.mode = LexMode.ALL;
@@ -376,8 +364,7 @@ export default class Lexer {
         this.tokens.add({
             type: TokenType.SYMBOL,
             value: value,
-            startPosition: { ...this.modeStartPosition },
-            endPosition: { ...this.position },
+            span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
         });
         this.mode = LexMode.ALL;
     }
@@ -410,8 +397,7 @@ export default class Lexer {
         this.tokens.add({
             type: TokenType.UNKNOWN,
             value: value,
-            startPosition: { ...this.modeStartPosition },
-            endPosition: { ...this.position },
+            span: new Span(this.source?.getFilename() || 'unknown', this.modeStartPosition, this.position),
         });
         this.mode = LexMode.ALL;
     }

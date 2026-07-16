@@ -1,0 +1,14 @@
+namespace core;
+
+class Card {
+    {%
+        padding: 1rem;
+        background-color: white;
+    %}
+
+    slot image {%
+        border: 2px solid red;
+    %}
+
+    slot body;
+}

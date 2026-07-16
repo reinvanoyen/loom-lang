@@ -1,10 +1,8 @@
-import { Token, TokenType } from './types/tokenization';
+import { Token, TokenType } from '../types/tokenization';
 import AST from './AST';
-import { Nullable } from './types/nullable';
-import DiagReporter, { MessageCode } from './DiagReporter';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
-import TokenStream, { SyncToken } from './TokenStream';
+import { Nullable } from '../types/nullable';
+import { MessageCode } from '../Diagnostics';
+import TokenStream, { SyncToken } from '../lexer/TokenStream';
 import ASTBuilder from './ASTBuilder';
 import Namespace from '@/compiler/nodes/Namespace';
 import ImportStatement from '@/compiler/nodes/ImportStatement';
@@ -16,8 +14,9 @@ import StyleBlock from '@/compiler/nodes/StyleBlock';
 import Class from '@/compiler/nodes/Class';
 import IdentifierType from '@/compiler/nodes/IdentifierType';
 import StringType from '@/compiler/nodes/StringType';
-import Node from '@/compiler/Node';
+import Node from '@/compiler/parser/Node';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
+import CompilationContext from '@/compiler/CompilationContext';
 
 enum RecoveryContext {
     TOP_LEVEL,
@@ -72,17 +71,12 @@ export default class Parser {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>;
+    private lastErrorIndex: Nullable<number> = null;
 
     /**
      * @private
      */
-    private reporter: DiagReporter;
-
-    /**
-     * @private
-     */
-    private lastErrorIndex: number | null = null;
+    private context: CompilationContext;
 
     /**
      * @param tokenStream
@@ -90,20 +84,21 @@ export default class Parser {
      * @param events
      * @param reporter
      */
-    constructor(tokenStream: TokenStream, builder: ASTBuilder, events: EventBus<TEventMap>, reporter: DiagReporter) {
+    constructor(tokenStream: TokenStream, builder: ASTBuilder, context: CompilationContext) {
         this.tokenStream = tokenStream;
         this.builder = builder;
-        this.events = events;
-        this.reporter = reporter;
+        this.context = context;
+        //this.events = events;
+        //this.reporter = reporter;
     }
 
     /**
      * Parse the TokenStream into an Abstract Syntax Tree (AST)
      */
     public parse(): AST {
-        this.events.emit('startParsing', { tokenStream: this.tokenStream });
+        this.context.eventBus.emit('startParsing', { tokenStream: this.tokenStream });
         this.parseAll();
-        this.events.emit('endParsing', { tokenStream: this.tokenStream });
+        this.context.eventBus.emit('endParsing', { tokenStream: this.tokenStream });
 
         return this.builder.getAst();
     }
@@ -182,6 +177,10 @@ export default class Parser {
                 this.builder.setAttribute('parent', header.parent);
             }
 
+            if (header.parentNamespace) {
+                this.builder.setAttribute('parentNamespace', header.parentNamespace);
+            }
+
             this.parseBlock({
                 openLabel: 'opening curly brace',
                 closeLabel: 'closing curly brace',
@@ -195,49 +194,6 @@ export default class Parser {
         });
 
         return true;
-    }
-
-    /**
-     * @private
-     */
-    private parseClassBodyMembers() {
-        while (!this.tokenStream.isEOF()) {
-            if (this.peekIs(TokenType.SYMBOL, '}')) {
-                break;
-            }
-
-            const before = this.tokenStream.getCursor();
-
-            if (this.parseClassMember()) {
-                continue;
-            }
-
-            // Diagnose once, with expected starters
-            const tok = this.peek();
-            this.reportError(
-                MessageCode.E_UNEXPECTED_TOKEN,
-                `Expected '@', 'slot', or a style block in class body, got '${tok?.value ?? '<eof>'}'`
-            );
-
-            // Recover to next plausible member boundary (or end)
-            this.recoverToRestart(this.CLASS_MEMBER_SYNC);
-
-            // If we landed on a delimiter, consume it (optional)
-            if (this.peekIs(TokenType.SYMBOL, ';')) {
-                this.tokenStream.advance();
-                continue;
-            }
-
-            // Never eat the terminator
-            if (this.peekIs(TokenType.SYMBOL, '}')) {
-                break;
-            }
-
-            // Hard progress guarantee
-            if (this.tokenStream.getCursor() === before) {
-                this.tokenStream.advance();
-            }
-        }
     }
 
     /**
@@ -270,14 +226,17 @@ export default class Parser {
             return true;
         }
 
-        const nameTok = this.expectOrRecoverToRestart(
-            'class name',
-            { type: TokenType.IDENT },
-            this.CLASS_HEADER_RESTART
-        );
-        if (!nameTok) return true;
+        const classReference = this.parseQualifiedClassReference('class name', this.CLASS_HEADER_RESTART);
+        if (!classReference) {
+            return true;
+        }
 
-        this.buildNode(new ClassAugmentation(nameTok.value), () => {
+        this.buildNode(new ClassAugmentation(classReference.className), () => {
+
+            if (classReference.namespace) {
+                this.builder.setAttribute('targetNamespace', classReference.namespace);
+            }
+
             this.parseBlock({
                 openLabel: 'opening curly brace',
                 closeLabel: 'closing curly brace',
@@ -317,10 +276,15 @@ export default class Parser {
             );
 
             if (name) {
-                this.insertNode(new SlotDeclaration(name.value))
+                this.buildNode(new SlotDeclaration(name.value), () => {
+                    const block = this.eat(TokenType.RAW_BLOCK);
+                    if (block) {
+                        this.builder.setAttribute('contents', block.value);
+                    }
+                    this.finishSlotStatement(!!block);
+                });
             }
-
-            this.finishStatement(RecoveryContext.CLASS_MEMBER);
+            
             return true;
         }
 
@@ -471,6 +435,34 @@ export default class Parser {
         return false;
     }
 
+    private parseQualifiedClassReference(nameLabel: string, sync: SyncToken[]): { namespace?: string; className: string } | null {
+        const first = this.expectOrRecoverToRestart(
+            nameLabel,
+            { type: TokenType.IDENT },
+            sync
+        );
+
+        if (!first) {
+            return null;
+        }
+
+        if (this.eat(TokenType.SYMBOL, '.')) {
+            const second = this.expectOrRecoverToRestart(
+                'class name',
+                { type: TokenType.IDENT },
+                sync
+            );
+
+            if (!second) {
+                return { namespace: first.value, className: '<error>' };
+            }
+
+            return { namespace: first.value, className: second.value };
+        }
+
+        return { className: first.value };
+    }
+
     private parseTypeValue() {
 
         const ident = this.eat(TokenType.IDENT);
@@ -514,7 +506,7 @@ export default class Parser {
         nameLabel: string;
         sync: SyncToken[];
         allowExtends?: boolean;
-    }): { name: string; parent?: string } | null {
+    }): { name: string; parent?: string, parentNamespace?: string } | null {
 
         if (!this.eat(TokenType.IDENT, opts.keyword)) {
             return null;
@@ -531,16 +523,19 @@ export default class Parser {
         }
 
         let parent: string | undefined;
+        let parentNamespace: string | undefined;
+
         if (opts.allowExtends && this.eat(TokenType.IDENT, 'extends')) {
-            const p = this.expectOrRecoverToRestart(
-                'parent class name',
-                { type: TokenType.IDENT },
-                opts.sync
-            );
-            if (p) parent = p.value;
+
+            const classReference = this.parseQualifiedClassReference('class name', this.CLASS_HEADER_RESTART);
+
+            if (classReference) {
+                parent = classReference.className;
+                parentNamespace = classReference.namespace;
+            }
         }
 
-        return { name: nameTok.value, parent };
+        return { name: nameTok.value, parent, parentNamespace };
     }
 
     /**
@@ -731,6 +726,19 @@ export default class Parser {
     }
 
     /**
+     * @param hasStyleBlock
+     * @private
+     */
+    private finishSlotStatement(hasStyleBlock: boolean) {
+        if (hasStyleBlock) {
+            this.eat(TokenType.SYMBOL, ';'); // optional, no error if missing
+            return;
+        }
+
+        this.finishStatement(RecoveryContext.CLASS_MEMBER); // required ;
+    }
+
+    /**
      * @param syncSet
      * @private
      */
@@ -824,19 +832,23 @@ export default class Parser {
      * @private
      */
     private reportError(code: MessageCode, message: string, at?: Nullable<Token>) {
-        const token = at ?? this.peek();
-        if (!token) return;
 
-        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.startPosition.index) {
+        const token = at ?? this.peek();
+
+        if (!token) {
             return;
         }
 
-        this.reporter.error({
+        if (this.lastErrorIndex !== null && this.lastErrorIndex === token.span.getStart()) {
+            return;
+        }
+
+        this.context.diagnostics.error({
             message,
             code,
-            span: { start: token.startPosition, end: token.endPosition },
+            span: token.span,
         });
 
-        this.lastErrorIndex = token.startPosition.index;
+        this.lastErrorIndex = token.span.getStart();
     }
 }

@@ -1,5 +1,5 @@
-import { Nullable } from './types/nullable';
-import { ResolvedType } from './types/analyzer';
+import { Nullable } from '../types/nullable';
+import { ResolvedType } from '../types/analyzer';
 
 export default class TypeTable {
     /**
@@ -32,6 +32,9 @@ export default class TypeTable {
         return null;
     }
 
+    /**
+     *
+     */
     public print() {
         console.table(this.types);
     }

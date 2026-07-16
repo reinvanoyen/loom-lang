@@ -1,43 +1,12 @@
-namespace ui;
+namespace app;
 
-import 'types.loom';
+import 'ui/Button.loom';
+import 'ui/Card.loom';
 
-type Size = 'small' | 'medium' | 'small';
-type ExtraSize = Size | 'huge';
-type Intent = 'danger';
+class SuperCard extends ui.Card {
+    {% color: blue; %}
 
-type Word = string;
-
-class Button {
-
-    @size: = 'medium';
-    @intent: Intent | 'flashy' = 'flashy';
-
-    what;
-
-    slot link;
-
-    {%
-        position: relative;
-        width: 100px;
-        height: 90px;
-        animation: heartbeat 1s infinite;
+    slot image {%
+        opacity: .2;
     %}
 }
-
-augment class Button {
-    {%
-        position: relative;
-        width: 100px;
-        height: 90px;
-        animation: heartbeat 1s infinite;
-    %}
-}
-
-class Link extends Button {
-
-}
-
-class Label {{%
-    color: red;
-%}}

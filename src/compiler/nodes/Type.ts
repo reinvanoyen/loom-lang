@@ -1,19 +1,8 @@
-import Node from '../Node';
-import Binder from '../Binder';
+import Node from '../parser/Node';
 
 export default class Type extends Node {
 
     getName(): string {
         return 'TYPE';
-    }
-
-    bind(binder: Binder) {
-        this.getChildren().forEach(child => {
-            child.bind(binder);
-        });
-    }
-
-    compile() {
-        // todo compile VariantDefinition
     }
 }

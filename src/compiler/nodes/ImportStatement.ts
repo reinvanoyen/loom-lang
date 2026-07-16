@@ -1,13 +1,8 @@
-import Node from '../Node';
-import Compiler from '../Compiler';
+import Node from '../parser/Node';
 
 export default class ImportStatement extends Node {
 
     getName(): string {
-        return 'IMPRT';
-    }
-    
-    compile(compiler: Compiler) {
-        // Import
+        return 'IMPORT';
     }
 }

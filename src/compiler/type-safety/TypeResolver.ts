@@ -1,14 +1,14 @@
-import AST from './AST';
+import AST from '../parser/AST';
 import TypeTable from './TypeTable';
 import Type from '@/compiler/nodes/Type';
-import { ResolvedType } from './types/analyzer';
+import { ResolvedType } from '../types/analyzer';
 import IdentifierType from '@/compiler/nodes/IdentifierType';
 import StringType from '@/compiler/nodes/StringType';
-import Symbol from './Symbol';
-import DiagReporter, { MessageCode } from './DiagReporter';
-import { Nullable } from './types/nullable';
-import EventBus from '../core/bus/EventBus';
-import { TEventMap } from './types/bus';
+import Symbol from '../binder/Symbol';
+import Diagnostics, { MessageCode } from '../Diagnostics';
+import { Nullable } from '../types/nullable';
+import EventBus from '../../core/bus/EventBus';
+import { EventMap } from '../types/bus';
 
 type TypeChildNode = IdentifierType | StringType;
 
@@ -16,7 +16,7 @@ export default class TypeResolver {
     /**
      * @private
      */
-    private events: EventBus<TEventMap>;
+    private events: EventBus<EventMap>;
 
     /**
      * @private
@@ -26,14 +26,14 @@ export default class TypeResolver {
     /**
      * @private
      */
-    private reporter: DiagReporter;
+    private reporter: Diagnostics;
 
     /**
      * @param events
      * @param reporter
      * @param typeTable
      */
-    constructor(events: EventBus<TEventMap>, reporter: DiagReporter, typeTable: TypeTable) {
+    constructor(events: EventBus<EventMap>, reporter: Diagnostics, typeTable: TypeTable) {
         this.events = events;
         this.reporter = reporter;
         this.typeTable = typeTable;

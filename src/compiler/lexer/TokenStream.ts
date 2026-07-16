@@ -1,4 +1,4 @@
-import { Token, TokenType } from './types/tokenization';
+import { Token, TokenType } from '../types/tokenization';
 import chalk from 'chalk';
 import { Nullable } from '@/compiler/types/nullable';
 
@@ -94,7 +94,7 @@ export default class TokenStream {
     public print() {
         const output: string[] = [];
         this.tokens.forEach(token => {
-            output.push(chalk.grey(`${token.type}(${chalk.blue(token.value)}) ${token.startPosition.line}:${token.startPosition.column} -> ${token.endPosition.line}:${token.endPosition.column}`));
+            output.push(chalk.grey(`${token.type}(${chalk.blue(token.value)}) ${token.span.getStart()} -> ${token.span.getEnd()}`));
         });
 
         console.log(output.join('\n'));

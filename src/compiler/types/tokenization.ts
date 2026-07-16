@@ -1,3 +1,5 @@
+import Span from '@/core/Span';
+
 export enum LexMode {
     ALL,
     UNKNOWN,
@@ -23,12 +25,7 @@ export enum TokenType {
 export type Token = {
     value: string;
     type: TokenType;
-    startPosition: Position;
-    endPosition: Position;
+    span: Span;
 }
 
-export type Position = {
-    index: number;
-    line: number;
-    column: number;
-};
+export type Position = number;

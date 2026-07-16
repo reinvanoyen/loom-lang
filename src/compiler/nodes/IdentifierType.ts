@@ -1,37 +1,8 @@
-import Node from '../Node';
-import Binder from '../Binder';
+import Node from '../parser/Node';
 
 export default class IdentifierType extends Node {
 
     getName(): string {
-        return 'T_IDNT';
-    }
-
-    bind(binder: Binder) {
-
-        const value = this.getValue();
-
-        if (! value) {
-            // todo - do we need to report this?
-            return;
-        }
-
-        if (value === 'string') {
-            // todo - do we need to report this?
-            return;
-        }
-
-        const symbol = binder.getType(value);
-
-        if (! symbol) {
-            // todo - do we need to report this?
-            return;
-        }
-
-        this.setSymbol(symbol);
-    }
-
-    compile() {
-        // todo compile TypeIdentNode
+        return 'T_IDENT';
     }
 }
