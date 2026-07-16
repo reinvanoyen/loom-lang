@@ -4,17 +4,17 @@ import Diagnostics from '@/compiler/Diagnostics';
 import { EventMap } from '@/compiler/types/bus';
 import { TokenType } from '@/compiler/types/tokenization';
 import Source from '@/compiler/Source';
+import CompilationContext from '@/compiler/CompilationContext';
 
-function createLexer(source: string): { lexer: Lexer; reporter: Diagnostics } {
-    const events = new EventBus<EventMap>();
-    const reporter = new Diagnostics(new Source(source));
-    const lexer = new Lexer(events, reporter);
-    return { lexer, reporter };
+function createLexer(): { lexer: Lexer; diagnostics: Diagnostics, eventBus: EventBus<EventMap> } {
+    const ctx = new CompilationContext();
+    const lexer = new Lexer(ctx);
+    return { lexer, diagnostics: ctx.diagnostics, eventBus: ctx.eventBus };
 }
 
 function tokenize(source: string) {
-    const { lexer } = createLexer(source);
-    const stream = lexer.tokenize(new Source(source));
+    const { lexer } = createLexer();
+    const stream = lexer.tokenize(new Source(source, 'filename'));
     return stream.getTokens();
 }
 
@@ -169,58 +169,53 @@ describe('Lexer', () => {
     describe('position information', () => {
         it('sets start and end position for identifier', () => {
             const tokens = tokenize('ab');
-            expect(tokens[0].startPosition).toEqual({ index: 0, line: 1, column: 1 });
-            expect(tokens[0].endPosition).toEqual({ index: 2, line: 1, column: 3 });
+            expect(tokens[0].span.getStart()).toEqual(0);
+            expect(tokens[0].span.getEnd()).toEqual(2);
         });
 
         it('sets position after newline', () => {
             const tokens = tokenize('\nfoo');
             expect(tokens).toHaveLength(1);
-            expect(tokens[0].startPosition).toEqual({ index: 1, line: 2, column: 1 });
-            expect(tokens[0].endPosition).toEqual({ index: 4, line: 2, column: 4 });
+            expect(tokens[0].span.getStart()).toEqual(1);
+            expect(tokens[0].span.getEnd()).toEqual(4);
         });
 
         it('sets position for string spanning line', () => {
             const tokens = tokenize('"hi"');
-            expect(tokens[0].startPosition).toEqual({ index: 0, line: 1, column: 1 });
-            expect(tokens[0].endPosition).toEqual({ index: 4, line: 1, column: 5 });
+            expect(tokens[0].span.getStart()).toEqual(0);
+            expect(tokens[0].span.getEnd()).toEqual(4);
         });
     });
 
     describe('unterminated string', () => {
         it('emits string token and reports error for unterminated double quote', () => {
-            const events = new EventBus<EventMap>();
-            const reporter = new Diagnostics();
-            const lexer = new Lexer(events, reporter);
-            const stream = lexer.tokenize('"hello');
+            const { lexer, diagnostics } = createLexer();
+            const stream = lexer.tokenize(new Source('"hello', 'filename'));
             const tokens = stream.getTokens();
             expect(tokens).toHaveLength(1);
             expect(tokens[0]).toMatchObject({ type: TokenType.STRING, value: 'hello' });
-            expect(reporter.hasErrors()).toBe(true);
+            expect(diagnostics.hasErrors()).toBe(true);
         });
     });
 
     describe('unterminated raw block', () => {
         it('emits raw block token and reports error for unterminated block', () => {
-            const events = new EventBus<EventMap>();
-            const reporter = new Diagnostics();
-            const lexer = new Lexer(events, reporter);
-            const stream = lexer.tokenize('{% open');
+            const { lexer, diagnostics } = createLexer();
+            const stream = lexer.tokenize(new Source('{% open', 'filename'));
             const tokens = stream.getTokens();
             expect(tokens).toHaveLength(1);
             expect(tokens[0]).toMatchObject({ type: TokenType.RAW_BLOCK, value: ' open' });
-            expect(reporter.hasErrors()).toBe(true);
+            expect(diagnostics.hasErrors()).toBe(true);
         });
     });
 
     describe('event emission', () => {
         it('emits startTokenization when tokenizing', () => {
-            const events = new EventBus<EventMap>();
-            const reporter = new Diagnostics(new Source('foo'));
-            const lexer = new Lexer(events, reporter);
+            const { lexer, eventBus } = createLexer();
+
             const payloads: { code: string }[] = [];
-            events.on('startTokenization', (p) => payloads.push(p));
-            lexer.tokenize(new Source('foo'));
+            eventBus.on('startTokenization', (p) => payloads.push(p));
+            lexer.tokenize(new Source('foo', 'filename'));
             expect(payloads).toHaveLength(1);
             expect(payloads[0].code).toBe('foo');
         });
