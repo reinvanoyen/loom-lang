@@ -19,7 +19,17 @@ export default class CompilationContext {
     public readonly diagnostics = new Diagnostics();
     public readonly flags: CompilationFlags;
 
-    constructor(flags: CompilationFlags) {
-        this.flags = flags;
+    constructor(flags?: Partial<CompilationFlags>) {
+
+        const defaultFlags: CompilationFlags = {
+            verbose: false,
+            printEmissionModel: false,
+            printBoundAst: false,
+            printDiagnostics: true,
+            printTypeTable: false,
+            printSymbolTable: false,
+        };
+
+        this.flags = { ...flags, ...defaultFlags };
     }
 }
