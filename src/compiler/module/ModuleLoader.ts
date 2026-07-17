@@ -52,7 +52,7 @@ export default class ModuleLoader {
     public parseVirtual(absolutePath: string, text: string): Module {
         const source = new Source(text, absolutePath);
         const ast = this.parseSource(source);
-        return new Module(absolutePath, source, ast, this.context.diagnostics);
+        return new Module(absolutePath, source, ast);
     }
 
     /**

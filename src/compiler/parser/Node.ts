@@ -6,6 +6,7 @@ import TypeChecker from '../type-safety/TypeChecker';
 import TypeTable from '../type-safety/TypeTable';
 import chalk from 'chalk';
 import { symbolMapToString } from '@/compiler/helpers';
+import Span from '@/core/Span';
 
 export default class Node {
     /**
@@ -37,6 +38,11 @@ export default class Node {
     protected children: Node[] = [];
 
     /**
+     * @protected
+     */
+    protected span: Nullable<Span> = null;
+
+    /**
      *
      * @protected
      */
@@ -62,6 +68,20 @@ export default class Node {
      */
     public getId(): Nullable<number> {
         return this.id;
+    }
+
+    /**
+     * @param span
+     */
+    public setSpan(span: Span) {
+        this.span = span;
+    }
+
+    /**
+     *
+     */
+    public getSpan(): Nullable<Span> {
+        return this.span;
     }
 
     /**

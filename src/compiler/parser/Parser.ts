@@ -369,7 +369,15 @@ export default class Parser {
             );
 
             if (path) {
-                this.insertNode(new ImportStatement(path.value));
+                const importStatementNode = new ImportStatement(path.value);
+                const token = this.peek(-1);
+                if (token) {
+                    // todo Here we actually force the Span of the "string" onto the import statement
+                    // this is incorrect, we'll probably have to make a StringLiteral node
+                    // and put the Span on that node
+                    importStatementNode.setSpan(token.span)
+                }
+                this.insertNode(importStatementNode);
             }
 
             this.finishStatement(RecoveryContext.TOP_LEVEL);

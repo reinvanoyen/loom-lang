@@ -7,6 +7,7 @@ import CompilationContext from '@/compiler/CompilationContext';
 import { MessageCode } from '@/compiler/Diagnostics';
 import Module from '@/compiler/module/Module';
 import { Nullable } from '@/compiler/types/nullable';
+import Span from '@/core/Span';
 
 export default class ModuleGraphLoader {
     /**
@@ -32,7 +33,7 @@ export default class ModuleGraphLoader {
         const compilation = new Compilation(path.resolve(entryPath));
         const visiting = new Set<string>();
 
-        const load = (resolved: string) => {
+        const load = (resolved: string, span: Nullable<Span>) => {
             resolved = path.resolve(resolved);
 
             if (compilation.hasModule(resolved)) {
@@ -48,6 +49,14 @@ export default class ModuleGraphLoader {
                 return;
             }
 
+            if (!fs.existsSync(resolved)) {
+                this.context.diagnostics.error({
+                    code: MessageCode.E_IMPORT_NOT_FOUND,
+                    message: `Import not found at ${resolved}`,
+                    span: span || new Span(resolved, 1, 1),
+                });
+            }
+
             visiting.add(resolved);
 
             const module = loadModule(resolved);
@@ -59,14 +68,21 @@ export default class ModuleGraphLoader {
 
             compilation.addModule(module);
 
-            for (const imp of module.getImportPaths()) {
-                load(resolveImport(imp, resolved));
+            for (const importStatement of module.getImportStatements()) {
+                const importPath = importStatement.getValue()!;
+
+                if (importPath) {
+                    load(
+                        resolveImport(importStatement.getValue()!, resolved),
+                        importStatement.getSpan()
+                    );
+                }
             }
 
             visiting.delete(resolved);
         };
 
-        load(compilation.getEntryPath());
+        load(compilation.getEntryPath(), null);
         return compilation;
     }
 
@@ -76,10 +92,6 @@ export default class ModuleGraphLoader {
     public loadGraph(entryPath: string): Compilation {
         return this.loadGraphWith(entryPath, (resolved) => {
             if (!fs.existsSync(resolved)) {
-                this.context.diagnostics.error({
-                    code: MessageCode.E_IMPORT_NOT_FOUND,
-                    message: `Import not found at ${resolved}`,
-                });
                 return null;
             }
             return this.loader.parseFile(resolved);
@@ -97,10 +109,6 @@ export default class ModuleGraphLoader {
                 return this.loader.parseVirtual(entry, sourceText);
             }
             if (!fs.existsSync(resolved)) {
-                this.context.diagnostics.error({
-                    code: MessageCode.E_IMPORT_NOT_FOUND,
-                    message: `Import not found at ${resolved}`,
-                });
                 return null;
             }
             return this.loader.parseFile(resolved);
