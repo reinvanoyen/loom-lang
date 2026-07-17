@@ -6,6 +6,7 @@ import { DiagnosticSeverity } from 'vscode-languageserver/node';
  * Transformer is responsible for transforming Compiler-specific structures to the structures LSP needs
  */
 export default class Transformer {
+    
     /**
      * @param severity
      */

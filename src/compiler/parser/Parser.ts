@@ -81,15 +81,12 @@ export default class Parser {
     /**
      * @param tokenStream
      * @param builder
-     * @param events
-     * @param reporter
+     * @param context
      */
     constructor(tokenStream: TokenStream, builder: ASTBuilder, context: CompilationContext) {
         this.tokenStream = tokenStream;
         this.builder = builder;
         this.context = context;
-        //this.events = events;
-        //this.reporter = reporter;
     }
 
     /**
