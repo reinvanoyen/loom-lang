@@ -2,6 +2,7 @@ namespace app;
 
 import 'ui/Button.loom';
 import 'ui/Card.loom';
+import 'ui/Something.loom';
 
 class SuperCard extends ui.Card {
     {% color: blue; %}

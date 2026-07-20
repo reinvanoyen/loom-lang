@@ -1,3 +1,13 @@
+.global-Something {
+  padding: 1rem;
+  background-color: white;
+  border: 1px solid black;
+  border: 1px solid black;
+}
+.global-Something__image {
+  border: 2px solid red;
+}
+.global-Something__body {}
 .core-Card {
   padding: 1rem;
   background-color: white;

@@ -1,0 +1,5 @@
+import './Card.loom';
+
+class Something extends ui.Card {{%
+    border: 1px solid black;
+%}}
