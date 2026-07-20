@@ -17,6 +17,9 @@ import StringType from '@/compiler/nodes/StringType';
 import Node from '@/compiler/parser/Node';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
 import CompilationContext from '@/compiler/CompilationContext';
+import StringLiteral from '@/compiler/nodes/StringLiteral';
+import ClassReference from '@/compiler/nodes/ClassReference';
+import Span from '@/core/Span';
 
 enum RecoveryContext {
     TOP_LEVEL,
@@ -170,14 +173,10 @@ export default class Parser {
 
         this.buildNode(new Class(header.name), () => {
 
-            if (header.parent) {
-                this.builder.setAttribute('parent', header.parent);
+            if (header.parentRef) {
+                this.builder.setAttribute('parentRef', header.parentRef);
             }
-
-            if (header.parentNamespace) {
-                this.builder.setAttribute('parentNamespace', header.parentNamespace);
-            }
-
+            
             this.parseBlock({
                 openLabel: 'opening curly brace',
                 closeLabel: 'closing curly brace',
@@ -228,10 +227,10 @@ export default class Parser {
             return true;
         }
 
-        this.buildNode(new ClassAugmentation(classReference.className), () => {
+        this.buildNode(new ClassAugmentation(), () => {
 
-            if (classReference.namespace) {
-                this.builder.setAttribute('targetNamespace', classReference.namespace);
+            if (classReference) {
+                this.builder.setAttribute('classRef', classReference);
             }
 
             this.parseBlock({
@@ -362,6 +361,9 @@ export default class Parser {
     private parseImportStatement() {
         if (this.eat(TokenType.IDENT, 'import')) {
 
+            this.insertNode(new ImportStatement());
+            this.builder.down();
+
             const path = this.expectOrRecoverStatement(
                 RecoveryContext.TOP_LEVEL,
                 'import path',
@@ -369,15 +371,13 @@ export default class Parser {
             );
 
             if (path) {
-                const importStatementNode = new ImportStatement(path.value);
+                const string = new StringLiteral(path.value);
                 const token = this.peek(-1);
                 if (token) {
-                    // todo Here we actually force the Span of the "string" onto the import statement
-                    // this is incorrect, we'll probably have to make a StringLiteral node
-                    // and put the Span on that node
-                    importStatementNode.setSpan(token.span)
+                    string.setSpan(token.span);
                 }
-                this.insertNode(importStatementNode);
+                this.insertNode(string);
+                this.builder.up();
             }
 
             this.finishStatement(RecoveryContext.TOP_LEVEL);
@@ -440,32 +440,33 @@ export default class Parser {
         return false;
     }
 
-    private parseQualifiedClassReference(nameLabel: string, sync: SyncToken[]): { namespace?: string; className: string } | null {
-        const first = this.expectOrRecoverToRestart(
-            nameLabel,
-            { type: TokenType.IDENT },
-            sync
-        );
-
-        if (!first) {
-            return null;
-        }
+    private parseQualifiedClassReference(
+        nameLabel: string,
+        sync: SyncToken[],
+    ): ClassReference | null {
+        const first = this.expectOrRecoverToRestart(nameLabel, { type: TokenType.IDENT }, sync);
+        if (!first) return null;
 
         if (this.eat(TokenType.SYMBOL, '.')) {
-            const second = this.expectOrRecoverToRestart(
-                'class name',
-                { type: TokenType.IDENT },
-                sync
-            );
-
+            const second = this.expectOrRecoverToRestart('class name', { type: TokenType.IDENT }, sync);
             if (!second) {
-                return { namespace: first.value, className: '<error>' };
+                const ref = new ClassReference('<error>', first.value);
+                ref.setSpan(first.span);
+                return ref;
             }
 
-            return { namespace: first.value, className: second.value };
+            const ref = new ClassReference(second.value, first.value);
+            ref.setSpan(new Span(
+                first.span.getFilename(),
+                first.span.getStart(),
+                second.span.getEnd(),
+            ));
+            return ref;
         }
 
-        return { className: first.value };
+        const ref = new ClassReference(first.value);
+        ref.setSpan(first.span);
+        return ref;
     }
 
     private parseTypeValue() {
@@ -511,7 +512,7 @@ export default class Parser {
         nameLabel: string;
         sync: SyncToken[];
         allowExtends?: boolean;
-    }): { name: string; parent?: string, parentNamespace?: string } | null {
+    }): { name: string; parentRef?: Nullable<ClassReference> } | null {
 
         if (!this.eat(TokenType.IDENT, opts.keyword)) {
             return null;
@@ -527,20 +528,12 @@ export default class Parser {
             return { name: '<error>' };
         }
 
-        let parent: string | undefined;
-        let parentNamespace: string | undefined;
-
+        let parentRef = null;
         if (opts.allowExtends && this.eat(TokenType.IDENT, 'extends')) {
-
-            const classReference = this.parseQualifiedClassReference('class name', this.CLASS_HEADER_RESTART);
-
-            if (classReference) {
-                parent = classReference.className;
-                parentNamespace = classReference.namespace;
-            }
+            parentRef = this.parseQualifiedClassReference('class name', this.CLASS_HEADER_RESTART);
         }
 
-        return { name: nameTok.value, parent, parentNamespace };
+        return { name: nameTok.value, parentRef };
     }
 
     /**

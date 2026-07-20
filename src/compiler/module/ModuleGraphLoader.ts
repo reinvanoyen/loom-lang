@@ -69,14 +69,17 @@ export default class ModuleGraphLoader {
             compilation.addModule(module);
 
             for (const importStatement of module.getImportStatements()) {
-                const importPath = importStatement.getValue()!;
+                const pathLiteral = importStatement.getPathLiteral();
+                const importPath = pathLiteral?.getValue();
 
-                if (importPath) {
-                    load(
-                        resolveImport(importStatement.getValue()!, resolved),
-                        importStatement.getSpan()
-                    );
+                if (! importPath) {
+                    continue;
                 }
+
+                load(
+                    resolveImport(importPath, resolved),
+                    pathLiteral?.getSpan() || null
+                );
             }
 
             visiting.delete(resolved);

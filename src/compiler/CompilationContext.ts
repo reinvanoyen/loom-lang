@@ -22,12 +22,12 @@ export default class CompilationContext {
     constructor(flags?: Partial<CompilationFlags>) {
 
         const defaultFlags: CompilationFlags = {
-            verbose: false,
-            printEmissionModel: false,
-            printBoundAst: false,
+            verbose: true,
+            printEmissionModel: true,
+            printBoundAst: true,
             printDiagnostics: true,
-            printTypeTable: false,
-            printSymbolTable: false,
+            printTypeTable: true,
+            printSymbolTable: true,
         };
 
         this.flags = { ...flags, ...defaultFlags };

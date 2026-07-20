@@ -7,6 +7,7 @@ import SlotDeclaration from '@/compiler/nodes/SlotDeclaration';
 import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
 import Node from '@/compiler/parser/Node';
 import { namespacedKey } from '@/compiler/helpers';
+import ClassReference from '@/compiler/nodes/ClassReference';
 
 /**
  * Semantic extraction from AST
@@ -72,8 +73,14 @@ export default class EmissionModelBuilder {
         const ownSlotStyles = new Map<string, string[]>();
 
         const parentSymbol = classNode.getSymbol('parent');
-        const parentName = classNode.getStringAttribute('parent');
-        const parentNamespace = parentSymbol?.getNamespace() ?? namespace;
+
+        const parentRefNode = classNode.getAttribute('parentRef');
+        const parentName =
+            parentRefNode instanceof ClassReference ? parentRefNode.getValue() : null;
+        const parentNamespace =
+            parentRefNode instanceof ClassReference
+                ? (parentRefNode.getNamespace() ?? namespace)
+                : null;
 
         nodes.forEach(node => {
             if (node instanceof SlotDeclaration) {
@@ -281,17 +288,23 @@ export default class EmissionModelBuilder {
      */
     private applyClassAugmentation(classAugNode: ClassAugmentation) {
         const symbol = classAugNode.getSymbol();
-        const className = classAugNode.getValue();
+        const classRef = classAugNode.getAttribute('classRef');
 
         // No symbol or className
-        if (!symbol || !className) {
+        if (!symbol || !classRef || ! (classRef instanceof ClassReference)) {
+            return;
+        }
+
+        const classRefName = classRef.getValue();
+
+        if (! classRefName) {
             return;
         }
 
         // Get the namespace
         const namespace = symbol.getNamespace() ?? 'global';
 
-        const classEmission = this.findClassEmission(namespace, className);
+        const classEmission = this.findClassEmission(namespace, classRefName);
         if (!classEmission) {
             // todo report with diagnostics
             return;

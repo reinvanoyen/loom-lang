@@ -1,6 +1,7 @@
 import AST from '@/compiler/parser/AST';
 import Compilation from '@/compiler/Compilation';
 import ImportStatement from '@/compiler/nodes/ImportStatement';
+import Namespace from '@/compiler/nodes/Namespace';
 
 export default class ProgramBuilder {
 
@@ -12,6 +13,7 @@ export default class ProgramBuilder {
 
         // Loop through each module in order
         for (const module of modules.slice().reverse()) {
+            program.addChild(new Namespace('global'));
 
             for (const child of module.getAst().getChildren()) {
 
