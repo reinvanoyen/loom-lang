@@ -9,6 +9,7 @@ import ClassAugmentation from '@/compiler/nodes/ClassAugmentation';
 import IdentifierType from '@/compiler/nodes/IdentifierType';
 import TypeDeclaration from '@/compiler/nodes/TypeDeclaration';
 import CompilationContext from '@/compiler/CompilationContext';
+import ClassReference from '@/compiler/nodes/ClassReference';
 
 export default class Binder {
     /**
@@ -39,42 +40,46 @@ export default class Binder {
      * @param ast
      */
     public bind(ast: Node) {
-        this.bindNode(ast);
+        // Phase 1: declarations
+        this.currentNamespace = 'global';
+        this.walk(ast, 'declarations');
 
-        /*
-        * todo - maybe split binding in two steps?
-        * this.bindDeclarations(ast);  // register classes + types
-        * this.bindReferences(ast);    // extends, augments, identifier types
-        * */
+        // Phase 2: references
+        this.currentNamespace = 'global';
+        this.walk(ast, 'references');
     }
 
     /**
      * @param node
+     * @param phase
      * @private
      */
-    private bindNode(node: Node) {
+    private walk(node: Node, phase: 'declarations' | 'references') {
         if (node instanceof NamespaceNode) {
-            this.bindNamespace(node);
+            this.bindNamespace(node); // always — both passes need correct NS
         }
 
-        if (node instanceof TypeDeclaration) {
-            this.bindTypeDeclaration(node);
-        }
-
-        if (node instanceof Class) {
-            this.bindClass(node);
-        }
-
-        if (node instanceof ClassAugmentation) {
-            this.bindClassAugmentation(node);
-        }
-
-        if (node instanceof IdentifierType) {
-            this.bindIdentifierType(node);
+        if (phase === 'declarations') {
+            if (node instanceof TypeDeclaration) {
+                this.bindTypeDeclaration(node);
+            }
+            if (node instanceof Class) {
+                this.bindClassDeclaration(node);
+            }
+        } else if (phase === 'references') {
+            if (node instanceof Class) {
+                this.bindClassReferences(node);
+            }
+            if (node instanceof ClassAugmentation) {
+                this.bindClassAugmentation(node);
+            }
+            if (node instanceof IdentifierType) {
+                this.bindIdentifierType(node);
+            }
         }
 
         for (const child of node.getChildren()) {
-            this.bindNode(child);
+            this.walk(child, phase);
         }
     }
 
@@ -104,36 +109,50 @@ export default class Binder {
             return;
         }
 
-        this.namespace(namespaceName);
+        this.setCurrentNamespace(namespaceName);
     }
 
     /**
      * @param node
      * @private
      */
-    private bindClass(node: Class) {
+    private bindClassDeclaration(node: Class) {
 
-        // Bind own symbol
         const id = node.getId();
         const className = node.getValue();
+        if (!id || !className) return;
+        const symbol = new Symbol('class', id);
+        node.setSymbol(symbol);
+        this.add(className, symbol);
+    }
 
-        if (id && className) {
-            const symbol = new Symbol('class', id);
-            node.setSymbol(symbol);
-            this.add(className, symbol);
-        }
+    /**
+     * @param node
+     * @private
+     */
+    private bindClassReferences(node: Class) {
+        const parentRefNode = node.getAttribute('parentRef');
 
-        // Bind parent symbol to class
-        const parentClassName = node.getStringAttribute('parent');
-        const parentClassNamespace = node.getStringAttribute('parentNamespace') ?? this.currentNamespace;
-
-        if (! parentClassName) {
+        if (!(parentRefNode instanceof ClassReference)) {
             return;
         }
+
+        const parentClassName = parentRefNode.getValue();
+
+        if (!parentClassName) {
+            return;
+        }
+
+        const parentClassNamespace = parentRefNode.getNamespace() || this.currentNamespace;
 
         const parentSymbol = this.getInNamespace(parentClassNamespace, parentClassName);
 
         if (! parentSymbol) {
+            this.context.diagnostics.error({
+                code: MessageCode.E_UNDEFINED_SYMBOL,
+                message: `Binding error: couldn't find symbol '${parentClassNamespace}.${parentClassName}'`,
+                span: parentRefNode.getSpan() || undefined,
+            });
             return;
         }
 
@@ -155,23 +174,32 @@ export default class Binder {
      */
     private bindClassAugmentation(node: ClassAugmentation) {
         const id = node.getId();
-        const value = node.getValue();
-        const targetNamespace = node.getStringAttribute('targetNamespace');
 
         if (!id) {
-            // todo - do we need to report this?
             return;
         }
 
-        if (!value) {
-            // todo - do we need to report this?
+        const classRef = node.getAttribute('classRef');
+
+        if (!(classRef instanceof ClassReference)) {
             return;
         }
 
-        const symbol = targetNamespace ? this.getInNamespace(targetNamespace, value) : this.get(value);
+        const className = classRef.getValue();
+
+        if (!className) {
+            return;
+        }
+
+        const namespace = classRef.getNamespace() || this.currentNamespace;
+        const symbol = namespace ? this.getInNamespace(namespace, className) : this.get(className);
 
         if (! symbol) {
-            // todo - do we need to report this?
+            this.context.diagnostics.error({
+                code: MessageCode.E_UNDEFINED_SYMBOL,
+                message: `Binding error: couldn't find symbol '${namespace}.${className}'`,
+                span: classRef.getSpan() || undefined,
+            });
             return;
         }
 
@@ -209,7 +237,7 @@ export default class Binder {
     /**
      * @param ns
      */
-    public namespace(ns: Namespace) {
+    public setCurrentNamespace(ns: Namespace) {
         this.currentNamespace = ns;
     }
 
@@ -248,14 +276,6 @@ export default class Binder {
      * @private
      */
     private getInNamespace(ns: Namespace, name: string): Symbol | null {
-        if (!this.symbolTable.hasSymbol(ns, name)) {
-            this.context.diagnostics.error({
-                code: MessageCode.E_UNDEFINED_SYMBOL,
-                message: `Binding error: couldn't find symbol '${ns}.${name}'`,
-            });
-            return null;
-        }
-
         return this.symbolTable.getSymbol(ns, name)!;
     }
 
@@ -275,6 +295,10 @@ export default class Binder {
         this.symbolTable.registerType(name, symbol);
     }
 
+    /**
+     * @param name
+     * @private
+     */
     private getType(name: string) {
         return this.symbolTable.getType(name);
     }
